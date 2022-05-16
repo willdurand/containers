@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -x
+
+NAME=d2
+ROOT_DIR="/tmp/$NAME"
+RUNTIME_NAME=yacr
+RUNTIME_BIN="$(pwd)/build/$RUNTIME_NAME"
+EXTRA_ARGS=()
+
+if [[ $GITPOD_REPO_ROOT ]]; then
+   EXTRA_ARGS=("${EXTRA_ARGS[@]}" --add-runtime "gitpod=runc-facade" --group gitpod)
+fi
+
+sudo dockerd \
+   --add-runtime "$RUNTIME_NAME=$RUNTIME_BIN" \
+   --default-runtime="$RUNTIME_NAME" \
+   --data-root="$ROOT_DIR/data" \
+   --exec-root="$ROOT_DIR/exec" \
+   --host="unix://$ROOT_DIR/$NAME.socket" \
+   --pidfile="$ROOT_DIR/$NAME.pid" \
+   "${EXTRA_ARGS[@]}" \
+   "$@"

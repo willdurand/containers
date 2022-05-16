@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+NAME=d2
+ROOT_DIR="/tmp/$NAME"
+
+docker -H "unix://$ROOT_DIR/$NAME.socket" "$@"

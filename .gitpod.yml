@@ -1,0 +1,10 @@
+tasks:
+  - name: bootstrap
+    before: |
+      echo 'export PATH="$PATH:/workspace/containers/build/"' >> ~/.bashrc.d/100-containers
+
+      mkdir -p ~/.run
+      chmod 700 ~/.run
+      echo 'export XDG_RUNTIME_DIR=~/.run' >> ~/.bashrc.d/100-containers
+
+      source ~/.bashrc.d/100-containers
