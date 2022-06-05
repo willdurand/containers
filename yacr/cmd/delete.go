@@ -15,6 +15,7 @@ import (
 func init() {
 	cmd := &cobra.Command{
 		Use:          "delete <id>",
+		Aliases:      []string{"del", "rm"},
 		Short:        "Delete a container",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {

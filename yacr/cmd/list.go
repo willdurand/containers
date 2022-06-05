@@ -15,6 +15,7 @@ func init() {
 	rootCmd.AddCommand(
 		&cobra.Command{
 			Use:          "list",
+			Aliases:      []string{"ls"},
 			Short:        "List containers",
 			SilenceUsage: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
