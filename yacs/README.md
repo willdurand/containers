@@ -116,13 +116,15 @@ $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim
 
 > Note: [`jq`][jq] was used to pretty-print the JSON responses in the different examples.
 
-The container is now running, which we can confirm with `yacr list` and/or `ps`:
+The container is now running, which we can confirm with `yacr list` and `ps`:
 
 ```
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 alpine-1    running     2022-06-03T22:00:00Z   44488       /tmp/alpine-bundle
+```
 
+```
 $ ps auxf
 USER         PID    %CPU %MEM    VSZ     RSS TTY       STAT START   TIME COMMAND
 [...]
@@ -142,7 +144,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 [Fri Jun  3 22:03:05 UTC 2022] Hello!
 ```
 
-Let's now send a signal to the container:
+We can also use the shim HTTP API to send a signal to the container:
 
 ```
 $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
@@ -159,7 +161,7 @@ $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.
 }
 ```
 
-It doesn't look like anything as changed so let's query the `stdout` logs again:
+Weird, it doesn't look like anything as changed. Let's query the `stdout` logs again:
 
 ```
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/stdout
@@ -169,7 +171,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 bye, bye
 ```
 
-The container has exited according to the logs and we can verify by querying the state of the shim again. This time, the container is marked as `stopped` and we have information in the `status` property:
+The container printed the message of the `signal_handler` defined in the `hello-loop.sh` script so the container should have exited. We can verify by querying the state of the shim again. This time, the container is marked as `stopped` and we have information in the `status` property:
 
 ```
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
@@ -189,15 +191,17 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 }
 ```
 
-The `exitStatus` is `123` and matches what we defined in the `loop-hello.sh` file created previously.
+The `exitStatus` is `123` and matches what we defined in the `loop-hello.sh` file created previously. Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. This is one of the reasons why shims are used.
 
-Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. 
 We can now delete the container. This API request should not return anything (HTTP 204):
 
 ```
 $ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+```
 
 If we query the state of the shim again, it should indicate that the container does not exist anymore:
+
+```
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 container 'alpine-1' not found
 ```

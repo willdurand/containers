@@ -5,7 +5,8 @@ import (
 	"syscall"
 )
 
-// ContainerStatus represents the container's process status and especially the status after the process has exited.
+// ContainerStatus represents the container's process status and especially the
+// status after the process has exited.
 type ContainerStatus struct {
 	PID        int                 `json:"pid"`
 	WaitStatus *syscall.WaitStatus `json:"-"`
