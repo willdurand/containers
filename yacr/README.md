@@ -167,6 +167,29 @@ $ ./bin/docker info
 [...]
 ```
 
+We can then use Docker as usual:
+
+```
+$ ./bin/docker run --rm -it busybox:latest /bin/sh
+Unable to find image 'busybox:latest' locally
+latest: Pulling from library/busybox
+cecc78ee4075: Pull complete 
+Digest: sha256:de56395ae0788e364797f0c60464d4693c43c33cc04ec26fc3b0931b2e7c9d7d
+Status: Downloaded newer image for busybox:latest
+/ # ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 /bin/sh
+   25 root      0:00 ps
+/ # ping -c 1 1.1.1.1
+PING 1.1.1.1 (1.1.1.1): 56 data bytes
+64 bytes from 1.1.1.1: seq=0 ttl=59 time=6.093 ms
+
+--- 1.1.1.1 ping statistics ---
+1 packets transmitted, 1 packets received, 0% packet loss
+round-trip min/avg/max = 6.093/6.093/6.093 ms
+/ #
+```
+
 > Note: `docker exec` does not work currently.
 
 ## Getting started with containerd
