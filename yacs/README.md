@@ -97,7 +97,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 }
 ```
 
-We can now start the container. We could use `yacr start` but given that we are describing how the `yacs` shim works, let's continue with the HTTP API. We should send the `start` command (`cmd`) using the `POST` HTTP verb:
+We can now start the container by sending the `start` command (`cmd`) in a `POST` HTTP request:
 
 ```
 $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
