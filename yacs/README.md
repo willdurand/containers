@@ -57,7 +57,7 @@ EOF
 
 This script loops forever and prints a message every second, unless it receives a `SIGTERM` signal, in which case it exits with a status equal to `123`.
 
-Now we can create a new container with the `yacr` runtime (the default):
+Now we can manually execute `yacs` (the shim) to create a new container with the `yacr` runtime (the default). This step is usually performed by a container manager.
 
 ```
 $ yacs --bundle=/tmp/alpine-bundle --container-id=alpine-1
