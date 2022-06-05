@@ -5,7 +5,7 @@
 First, we need a new bundle:
 
 ```
-$ make bundle
+$ make alpine_bundle
 ```
 
 Let's edit the `config.json` file generated in `/tmp/alpine-bundle` as follows:
