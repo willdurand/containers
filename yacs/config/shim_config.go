@@ -91,22 +91,14 @@ func (c *ShimConfig) RuntimePath() string {
 
 func (c *ShimConfig) RuntimeArgs() []string {
 	args := []string{
-		"--log", c.RuntimeLogFile(),
-		"--log-format", c.RuntimeLogFormat(),
+		"--log", filepath.Join(c.rootDir, fmt.Sprintf("%s.log", c.runtime)),
+		"--log-format", "json",
 	}
 	if c.debug {
 		args = append(args, "--debug")
 	}
 
 	return args
-}
-
-func (c *ShimConfig) RuntimeLogFile() string {
-	return filepath.Join(c.rootDir, fmt.Sprintf("%s.log", c.runtime))
-}
-
-func (c *ShimConfig) RuntimeLogFormat() string {
-	return "json"
 }
 
 func (c *ShimConfig) ContainerPidFileName() string {

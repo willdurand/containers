@@ -303,29 +303,19 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 	errFile, _ := os.OpenFile(cfg.StderrFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
 	go io.Copy(errFile, errRead)
 
-	runtimeArgs := []string{
-		"runtime",
-		"--bundle", cfg.Bundle(),
-		"--container-id", cfg.ContainerID(),
-		"--container-pidfile", cfg.ContainerPidFileName(),
-		"--runtime", cfg.Runtime(),
-		"--runtime-log", cfg.RuntimeLogFile(),
-		"--runtime-log-format", cfg.RuntimeLogFormat(),
-	}
-	if cfg.Debug() {
-		runtimeArgs = append(runtimeArgs, "--debug")
-	}
-	if logFile, _ := cmd.Flags().GetString("log"); logFile != "" {
-		runtimeArgs = append(runtimeArgs, "--log", logFile)
-	}
-	if logFormat, _ := cmd.Flags().GetString("log-format"); logFormat != "" {
-		runtimeArgs = append(runtimeArgs, "--log-format", logFormat)
-	}
+	runtimeArgs := append(
+		[]string{
+			cfg.Runtime(),
+			"create", cfg.ContainerID(),
+			"--bundle", cfg.Bundle(),
+			"--pid-file", cfg.ContainerPidFileName(),
+		},
+		cfg.RuntimeArgs()...,
+	)
 
-	self, _ := os.Executable()
 	process := &exec.Cmd{
-		Path:   self,
-		Args:   append([]string{programName}, runtimeArgs...),
+		Path:   cfg.RuntimePath(),
+		Args:   runtimeArgs,
 		Stdin:  nil,
 		Stdout: outWrite,
 		Stderr: errWrite,
