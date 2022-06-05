@@ -273,7 +273,7 @@ alpine-runc   4363        running     /tmp/alpine-bundle   2022-06-05T10:57:18.3
 Since `runc` is the reference implementation and a production-ready runtime, it has a LOT more features than [`yacr`](../yacr/). For instance, we can use `runc exec` to execute a new process in the container, like spawning a shell:
 
 ```
-$ $ runc exec -t alpine-runc /bin/sh
+$ runc exec -t alpine-runc /bin/sh
 / # ps
 PID   USER     TIME  COMMAND
     1 root      0:00 sh /hello-loop.sh
