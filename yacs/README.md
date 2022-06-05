@@ -202,7 +202,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 container 'alpine-1' not found
 ```
 
-We can terminate the shim with a `DELETE` HTTP request:
+Finally, we can terminate the shim with a `DELETE` HTTP request:
 
 ```
 $ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
