@@ -58,7 +58,7 @@ func runtime(cmd *cobra.Command, args []string) error {
 				"--pid-file", pidFile,
 			},
 		),
-		Stdin:  os.Stdin,
+		Stdin:  nil,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
