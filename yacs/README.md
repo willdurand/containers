@@ -196,6 +196,8 @@ We can now delete the container. This API request should not return anything (HT
 
 ```
 $ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+
+If we query the state of the shim again, it should indicate that the container does not exist anymore:
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 container 'alpine-1' not found
 ```
