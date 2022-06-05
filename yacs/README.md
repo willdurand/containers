@@ -1,6 +1,8 @@
 # Yet Another Container Shim
 
-This is an example of a container shim that exposes an HTTP API to control the lifecycle of a container process. Theoretically, shims should be a small as possible because container managers use a shim per container process. This isn't the case of this shim, though, but also no one should be using it except for learning purposes.
+This is an example of a container shim that exposes an HTTP API[^1] to control the lifecycle of a container process. Theoretically, shims should be a small as possible because container managers use a shim per container process. This isn't the case of this shim, though, but also no one should be using it except for learning purposes.
+
+[^1]: this will likely change in the future (to a GRPC API with [ttrpc][])
 
 ## Getting started with an example
 
@@ -90,6 +92,7 @@ We can use `curl` to interact with the shim:
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 {
   "id": "alpine-1",
+  "runtime": "yacr",
   "state": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
@@ -107,6 +110,7 @@ We can now start the container by sending the `start` command (`cmd`) in a `POST
 $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 {
   "id": "alpine-1",
+  "runtime": "yacr",
   "state": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
@@ -154,6 +158,7 @@ We can also use the shim HTTP API to send a signal to the container:
 $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 {
   "id": "alpine-1",
+  "runtime": "yacr",
   "state": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
@@ -181,6 +186,7 @@ The container printed the message of the `signal_handler` defined in the `hello-
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 {
   "id": "alpine-1",
+  "runtime": "yacr",
   "state": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
@@ -207,7 +213,7 @@ If we query the state of the shim again, it should indicate that the container d
 
 ```
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
-container 'alpine-1' not found
+container 'alpine-1' does not exist
 ```
 
 Finally, we can terminate the shim with a `DELETE` HTTP request:
@@ -217,4 +223,108 @@ $ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://
 BYE
 ```
 
+## Getting started with `runc`
+
+This shim should be able to use any OCI-compliant runtime like [`runc`][runc] (the reference implementation). Let's reproduce what was done in the previous section but with `runc`.
+
+```
+$ yacs --bundle /tmp/alpine-bundle/ --container-id alpine-runc --runtime runc
+/home/gitpod/.run/yacs/alpine-runc/shim.sock
+```
+
+The `ps` output below shows that `runc` has been invoked:
+
+```
+$ ps auxf
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+[...]
+gitpod      4321  0.0  0.0 1079876 6776 ?        Ssl  10:57   0:00 yacs --bundle /tmp/alpine-bundle/ --container-id alpine-runc --runtime runc
+gitpod      4363  0.0  0.0 1083784 9980 ?        Ssl  10:57   0:00  \_ runc init
+```
+
+```
+$ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+{
+  "id": "alpine-runc",
+  "runtime": "runc",
+  "state": {
+    "ociVersion": "1.0.2-dev",
+    "id": "alpine-runc",
+    "status": "running",
+    "pid": 4363,
+    "bundle": "/tmp/alpine-bundle"
+  },
+  "status": {}
+}
+```
+
+We could use `runc list` to list the containers created by `runc`:
+
+```
+$ runc list
+ID            PID         STATUS      BUNDLE               CREATED                          OWNER
+alpine-runc   4363        running     /tmp/alpine-bundle   2022-06-05T10:57:18.334165274Z   gitpod
+```
+
+Since `runc` is the reference implementation and a production-ready runtime, it has a LOT more features than [`yacr`](../yacr/). For instance, we can use `runc exec` to execute a new process in the container, like spawning a shell:
+
+```
+$ $ runc exec -t alpine-runc /bin/sh
+/ # ps
+PID   USER     TIME  COMMAND
+    1 root      0:00 sh /hello-loop.sh
+  229 root      0:00 /bin/sh
+  236 root      0:00 sleep 1
+  237 root      0:00 ps
+/ #
+```
+
+Let's kill the container now:
+
+```
+$ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+{
+  "id": "alpine-runc",
+  "runtime": "runc",
+  "state": {
+    "ociVersion": "1.0.2-dev",
+    "id": "alpine-runc",
+    "status": "running",
+    "pid": 4363,
+    "bundle": "/tmp/alpine-bundle"
+  },
+  "status": {}
+}
+```
+
+The state should be updated after the container process has exited:
+
+```
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+{
+  "id": "alpine-runc",
+  "runtime": "runc",
+  "state": {
+    "ociVersion": "1.0.2-dev",
+    "id": "alpine-runc",
+    "status": "stopped",
+    "bundle": "/tmp/alpine-bundle"
+  },
+  "status": {
+    "exitStatus": 123,
+    "exited": true
+  }
+}
+```
+
+We can now delete the container and terminate the shim:
+
+```
+$ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+$ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+BYE
+```
+
 [jq]: https://stedolan.github.io/jq/
+[runc]: https://github.com/opencontainers/runc/
+[ttrpc]: https://github.com/containerd/ttrpc

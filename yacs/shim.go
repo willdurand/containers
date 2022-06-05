@@ -230,8 +230,9 @@ func executeRuntime(w http.ResponseWriter, cfg *config.ShimConfig, runtimeArgs [
 	).Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
-			if bytes.Contains(exitError.Stderr, []byte("not found")) {
-				msg := fmt.Sprintf("container '%s' not found", cfg.ContainerID())
+			// HACK: we should probably not parse the error message like that...
+			if bytes.Contains(exitError.Stderr, []byte("does not exist")) {
+				msg := fmt.Sprintf("container '%s' does not exist", cfg.ContainerID())
 				http.Error(w, msg, http.StatusNotFound)
 				return output, err
 			}
@@ -267,9 +268,10 @@ func sendShimState(w http.ResponseWriter, cfg *config.ShimConfig) {
 	}
 
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":     cfg.ContainerID(),
-		"state":  state,
-		"status": cfg.ContainerStatus(),
+		"id":      cfg.ContainerID(),
+		"state":   state,
+		"runtime": cfg.Runtime(),
+		"status":  cfg.ContainerStatus(),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -304,13 +306,12 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 	go io.Copy(errFile, errRead)
 
 	runtimeArgs := append(
-		[]string{
-			cfg.Runtime(),
+		[]string{cfg.Runtime()},
+		append(cfg.RuntimeArgs(), []string{
 			"create", cfg.ContainerID(),
 			"--bundle", cfg.Bundle(),
 			"--pid-file", cfg.ContainerPidFileName(),
-		},
-		cfg.RuntimeArgs()...,
+		}...)...,
 	)
 
 	process := &exec.Cmd{

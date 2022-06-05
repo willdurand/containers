@@ -106,7 +106,7 @@ func Load(rootDir string, id string) (*ContainerState, error) {
 
 	if err := container.loadContainerState(); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return container, fmt.Errorf("container '%s' not found", id)
+			return container, fmt.Errorf("container '%s' does not exist", id)
 		}
 
 		return container, err
