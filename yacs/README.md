@@ -1,5 +1,7 @@
 # Yet Another Container Shim
 
+This is an example of a container shim that exposes an HTTP API to control the lifecycle of a container process. Theoretically, shims should be a small as possible because container managers use a shim per container process. This isn't the case of this shim, though, but also no one should be using it except for learning purposes.
+
 ## Getting started with an example
 
 First, we need a new bundle:
@@ -77,7 +79,7 @@ $ ps auxf
 USER         PID    %CPU %MEM    VSZ     RSS TTY       STAT START   TIME COMMAND
 [...]
 gitpod       44458  0.0  0.0     1079856 7260 ?        Ssl  22:01   0:00 yacs --bundle=/tmp/alpine-bundle --container-id=alpine-1
-gitpod       44488  0.0  0.0     1076520 5780 ?        Sl   22:01   0:00  \_ yacr create container --root /home/gitpod/.run/yacr alpine-1
+gitpod       44488  0.0  0.0     1076520 5780 ?        Sl   22:01   0:00  \_ yacr create container --root /home/gitpod/.run/yacr --log-format json --log /home/gitpod/.run/yacs/alpine-1/yacr.log alpine-1
 ```
 
 When the command returns, it prints a unix socket address that can be used to query the shim using... HTTP. This isn't great but it is enough to demonstrate how a shim works.

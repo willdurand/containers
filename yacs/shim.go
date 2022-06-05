@@ -74,7 +74,7 @@ func shim(cmd *cobra.Command, args []string) error {
 
 	// The daemon shim has started. We cannot log information to stdout/stderr
 	// so we are going to use `logger.Fatal()` in case of an error.
-	logger.Debug("started")
+	logger.Info("started")
 
 	// Make this daemon a subreaper so that it "adopts" orphaned descendants,
 	// see: https://man7.org/linux/man-pages/man2/prctl.2.html
@@ -90,7 +90,7 @@ func shim(cmd *cobra.Command, args []string) error {
 
 	cfg.Destroy()
 
-	logger.Debug("stopped")
+	logger.Info("stopped")
 	return nil
 }
 
@@ -222,16 +222,16 @@ func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
 	close(exitShim)
 }
 
-func executeRuntime(w http.ResponseWriter, config *config.ShimConfig, runtimeArgs []string) ([]byte, error) {
-	if config.Debug() {
-		runtimeArgs = append(runtimeArgs, "--debug")
-	}
-
-	output, err := exec.Command(config.RuntimePath(), runtimeArgs...).Output()
+func executeRuntime(w http.ResponseWriter, cfg *config.ShimConfig, runtimeArgs []string) ([]byte, error) {
+	output, err := exec.Command(
+		cfg.RuntimePath(),
+		// Add default runtime args.
+		append(cfg.RuntimeArgs(), runtimeArgs...)...,
+	).Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			if bytes.Contains(exitError.Stderr, []byte("not found")) {
-				msg := fmt.Sprintf("container '%s' not found", config.ContainerID())
+				msg := fmt.Sprintf("container '%s' not found", cfg.ContainerID())
 				http.Error(w, msg, http.StatusNotFound)
 				return output, err
 			}
@@ -303,16 +303,24 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 	errFile, _ := os.OpenFile(cfg.StderrFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
 	go io.Copy(errFile, errRead)
 
-	runtimeArgs := appendGlobalFlags(
-		cmd,
-		[]string{
-			"runtime",
-			"--bundle", cfg.Bundle(),
-			"--container-id", cfg.ContainerID(),
-			"--container-pidfile", cfg.ContainerPidFileName(),
-			"--runtime", cfg.Runtime(),
-		},
-	)
+	runtimeArgs := []string{
+		"runtime",
+		"--bundle", cfg.Bundle(),
+		"--container-id", cfg.ContainerID(),
+		"--container-pidfile", cfg.ContainerPidFileName(),
+		"--runtime", cfg.Runtime(),
+		"--runtime-log", cfg.RuntimeLogFile(),
+		"--runtime-log-format", cfg.RuntimeLogFormat(),
+	}
+	if cfg.Debug() {
+		runtimeArgs = append(runtimeArgs, "--debug")
+	}
+	if logFile, _ := cmd.Flags().GetString("log"); logFile != "" {
+		runtimeArgs = append(runtimeArgs, "--log", logFile)
+	}
+	if logFormat, _ := cmd.Flags().GetString("log-format"); logFormat != "" {
+		runtimeArgs = append(runtimeArgs, "--log-format", logFormat)
+	}
 
 	self, _ := os.Executable()
 	process := &exec.Cmd{

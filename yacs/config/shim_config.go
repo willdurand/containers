@@ -36,10 +36,10 @@ func NewShimConfigFromFlags(flags *pflag.FlagSet) (*ShimConfig, error) {
 	runtime, _ := flags.GetString("runtime")
 	debug, _ := flags.GetBool("debug")
 
-	return NewShimConfig(rootDir, bundle, containerId, runtime, debug)
+	return newShimConfig(rootDir, bundle, containerId, runtime, debug)
 }
 
-func NewShimConfig(rootDir, bundle, containerId, runtime string, debug bool) (*ShimConfig, error) {
+func newShimConfig(rootDir, bundle, containerId, runtime string, debug bool) (*ShimConfig, error) {
 	containerDir := filepath.Join(rootDir, containerId)
 	if err := os.MkdirAll(containerDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create container directory: %w", err)
@@ -87,6 +87,26 @@ func (c *ShimConfig) Runtime() string {
 
 func (c *ShimConfig) RuntimePath() string {
 	return c.runtimePath
+}
+
+func (c *ShimConfig) RuntimeArgs() []string {
+	args := []string{
+		"--log", c.RuntimeLogFile(),
+		"--log-format", c.RuntimeLogFormat(),
+	}
+	if c.debug {
+		args = append(args, "--debug")
+	}
+
+	return args
+}
+
+func (c *ShimConfig) RuntimeLogFile() string {
+	return filepath.Join(c.rootDir, fmt.Sprintf("%s.log", c.runtime))
+}
+
+func (c *ShimConfig) RuntimeLogFormat() string {
+	return "json"
 }
 
 func (c *ShimConfig) ContainerPidFileName() string {

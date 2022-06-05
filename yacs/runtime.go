@@ -27,6 +27,10 @@ func init() {
 	cmd.MarkFlagRequired("container-pidfile")
 	cmd.Flags().String("runtime", "", "container runtime to use")
 	cmd.MarkFlagRequired("runtime")
+	cmd.Flags().String("runtime-log", "", "runtime log file")
+	cmd.MarkFlagRequired("runtime-log")
+	cmd.Flags().String("runtime-log-format", "", "runtime log format")
+	cmd.MarkFlagRequired("runtime-log-format")
 
 	shimCmd.AddCommand(cmd)
 }
@@ -47,17 +51,25 @@ func runtime(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("runtime executable '%s' not found", runtime)
 	}
 
+	runtimeArgs := []string{
+		runtime,
+		"create", containerId,
+		"--bundle", bundle,
+		"--pid-file", pidFile,
+	}
+	if logFile, _ := cmd.Flags().GetString("runtime-log"); logFile != "" {
+		runtimeArgs = append(runtimeArgs, "--log", logFile)
+	}
+	if logFormat, _ := cmd.Flags().GetString("runtime-log-format"); logFormat != "" {
+		runtimeArgs = append(runtimeArgs, "--log-format", logFormat)
+	}
+	if debug, _ := cmd.Flags().GetBool("debug"); debug {
+		runtimeArgs = append(runtimeArgs, "--debug")
+	}
+
 	process := &exec.Cmd{
-		Path: runtimePath,
-		Args: appendGlobalFlags(
-			cmd,
-			[]string{
-				runtime,
-				"create", containerId,
-				"--bundle", bundle,
-				"--pid-file", pidFile,
-			},
-		),
+		Path:   runtimePath,
+		Args:   runtimeArgs,
 		Stdin:  nil,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -65,7 +77,7 @@ func runtime(cmd *cobra.Command, args []string) error {
 
 	logger.WithFields(logrus.Fields{
 		"command": process.String(),
-	}).Debug("executing container runtime")
+	}).Info("executing container runtime")
 
 	if err := process.Run(); err != nil {
 		logger.WithError(err).Error("failed to execute container runtime")
