@@ -70,12 +70,14 @@ This should start a new shim that will automatically create a container process.
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 alpine-1    created     2022-06-03T22:00:00Z   44488       /tmp/alpine-bundle
+```
 
+```
 $ ps auxf
 USER         PID    %CPU %MEM    VSZ     RSS TTY       STAT START   TIME COMMAND
 [...]
 gitpod       44458  0.0  0.0     1079856 7260 ?        Ssl  22:01   0:00 yacs --bundle=/tmp/alpine-bundle --container-id=alpine-1
-gitpod       44488  0.0  0.0     1076520 5780 ?        Sl   22:01   0:00  \_ yacr create container --root /home/gitpod/.run/yacr --log-format text alpine-1
+gitpod       44488  0.0  0.0     1076520 5780 ?        Sl   22:01   0:00  \_ yacr create container --root /home/gitpod/.run/yacr alpine-1
 ```
 
 When the command returns, it prints a unix socket address that can be used to query the shim using... HTTP. This isn't great but it is enough to demonstrate how a shim works.
@@ -191,7 +193,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 }
 ```
 
-The `exitStatus` is `123` and matches what we defined in the `loop-hello.sh` file created previously. Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. This is one of the reasons why shims are used.
+The `exitStatus` is `123` and matches what we defined in the `hello-loop.sh` file created previously. Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. This is one of the reasons why shims are used.
 
 We can now delete the container. This API request should not return anything (HTTP 204):
 

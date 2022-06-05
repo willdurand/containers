@@ -30,7 +30,7 @@ func NewRootCommand(programName, shortDescription string) *cobra.Command {
 
 	rootCmd.PersistentFlags().String("root", getDefaultRootDir(programName), "root directory")
 	rootCmd.PersistentFlags().String("log", "", "log file (default \"/dev/stderr\")")
-	rootCmd.PersistentFlags().String("log-format", "text", "log format")
+	rootCmd.PersistentFlags().String("log-format", "", "log format (default \"text\")")
 	rootCmd.PersistentFlags().Bool("debug", false, "enable debug logging")
 
 	return rootCmd
@@ -65,7 +65,7 @@ func makeRootPreRunE(programName string) func(cmd *cobra.Command, args []string)
 		}
 
 		switch logFormat, _ := cmd.Flags().GetString("log-format"); logFormat {
-		case "text":
+		case "", "text":
 			// do nothing
 		case "json":
 			logrus.SetFormatter(&logrus.JSONFormatter{})

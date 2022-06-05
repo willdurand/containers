@@ -216,11 +216,9 @@ func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
 		}
 	}()
 
-	select {
-	case <-ctx.Done():
-		server.Shutdown(ctx)
-	}
+	<-ctx.Done()
 
+	server.Shutdown(ctx)
 	close(exitShim)
 }
 
