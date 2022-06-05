@@ -12,6 +12,8 @@ This runtime is known to be unsafe because:
 
 ## Getting started (standalone)
 
+**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
+
 First, we need an OCI bundle, which we can create using `docker` and `runc`:
 
 ```
@@ -151,6 +153,8 @@ PID   USER     TIME  COMMAND
 
 ## Getting started with Docker
 
+**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
+
 Let's create a new Docker daemon with the `yacr` runtime:
 
 ```
@@ -193,6 +197,8 @@ round-trip min/avg/max = 6.093/6.093/6.093 ms
 > Note: `docker exec` does not work currently.
 
 ## Getting started with containerd
+
+**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
 
 First, [install `containerd`][install-containerd], then run `containerd` with elevated privileges:
 
