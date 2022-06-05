@@ -97,7 +97,6 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 }
 ```
 
-> Note: the lifetime of the shim is, at the very least, bound to the lifetime of the container process. When the container process exits, the shim knows it because it waits for the termination of the container process and we'll see more information in the `status` field above.
 
 We can now start the container. We could use `yacr start` but given that we are describing how the `yacs` shim works, let's continue with the HTTP API. We should send the `start` command (`cmd`) using the `POST` HTTP verb:
 
