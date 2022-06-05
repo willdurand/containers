@@ -64,7 +64,7 @@ $ yacs --bundle=/tmp/alpine-bundle --container-id=alpine-1
 /home/gitpod/.run/yacs/alpine-1/shim.sock
 ```
 
-This should start a new shim that will automatically create a container process with `yacr` and we can check with `yacr list` and `ps`:
+This should start a new shim that will automatically create a container process. We can check with `yacr list` and `ps`:
 
 ```
 $ yacr list
