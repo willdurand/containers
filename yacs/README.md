@@ -192,7 +192,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 The `exitStatus` is `123` and matches what we defined in the `loop-hello.sh` file created previously.
 
 Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. 
-We can now delete the container. This API request should not return anything (HTTP 204). If we query the state of the shim again, it should indicate that the container does not exist anymore:
+We can now delete the container. This API request should not return anything (HTTP 204):
 
 ```
 $ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
