@@ -212,7 +212,7 @@ Finally, we can terminate the shim with a `DELETE` HTTP request:
 
 ```
 $ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
-bye
+BYE
 ```
 
 [jq]: https://stedolan.github.io/jq/

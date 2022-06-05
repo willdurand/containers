@@ -112,7 +112,7 @@ func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
 		case "POST":
 			break
 		case "DELETE":
-			w.Write([]byte("bye\n"))
+			w.Write([]byte("BYE\n"))
 			cancel()
 			return
 		default:
