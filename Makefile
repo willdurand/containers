@@ -8,10 +8,28 @@ MAKEFLAGS += --warn-undefined-variables
 git_hash  := $(shell git rev-parse --short HEAD)
 build_dir := build
 
-build: ## build binaries
+go_build_flags := -ldflags "-X github.com/willdurand/containers/version.GitCommit=$(git_hash)"
+
+all: ## build all binaries
+all: yacr yacs
+.PHONY: all
+
+yacr: ## build the container runtime
 	@mkdir -p $(build_dir)
-	cd yacr && go build -ldflags "-X github.com/willdurand/containers/yacr/version.GitCommit=$(git_hash)" -o ../$(build_dir)/yacr
-.PHONY: build
+	cd $@ && go build $(go_build_flags) -o "../$(build_dir)/$@"
+.PHONY: yacr
+
+yacs: ## build the container shim
+	@mkdir -p $(build_dir)
+	cd $@ && go build $(go_build_flags) -o "../$(build_dir)/$@"
+.PHONY: yacs
+
+alpine_bundle: ## create a rootless bundle (for testing purposes)
+	rm -rf /tmp/alpine-bundle/rootfs
+	mkdir -p /tmp/alpine-bundle/rootfs
+	docker export $$(docker create alpine) | tar -C /tmp/alpine-bundle/rootfs -xvf -
+	cd /tmp/alpine-bundle && runc spec --rootless
+.PHONY: alpine_bundle
 
 help: ## show this help message
 help:

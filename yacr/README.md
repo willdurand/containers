@@ -15,13 +15,10 @@ This runtime is known to be unsafe because:
 First, we need an OCI bundle, which we can create using `docker` and `runc`:
 
 ```
-$ mkdir -p /tmp/alpine-bundle/rootfs
-$ cd /tmp/alpine-bundle
-$ docker export $(docker create alpine) | tar -C rootfs -xvf -
-$ runc spec --rootless
+$ make alpine_bundle
 ```
 
-> Note: We pass `--rootless` to `runc spec` to generate a configuration for "rootless containers". Under the hood, this creates some [user namespace mappings][].
+> Note: we pass `--rootless` to `runc spec` to generate a configuration for "rootless containers". Under the hood, this creates some [user namespace mappings][].
 
 Edit the `config.json` file to set `process.terminal` to `false` and update the `process.args` to execute `/bin/sleep 1000`:
 
@@ -170,7 +167,7 @@ $ ./bin/docker info
 [...]
 ```
 
-> **Note:** `docker exec` does not work currently.
+> Note: `docker exec` does not work currently.
 
 ## Getting started with containerd
 
