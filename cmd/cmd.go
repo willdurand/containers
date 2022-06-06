@@ -1,3 +1,4 @@
+// Package cmd contains the common features used to build CLI applications.
 package cmd
 
 import (

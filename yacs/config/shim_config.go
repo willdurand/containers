@@ -1,3 +1,5 @@
+// Package config provides configuration structures and features to operate a
+// shim.
 package config
 
 import (
