@@ -17,7 +17,7 @@ The easiest and quickest way to get started is to build all sub-projects:
 $ make all
 ```
 
-For non-Gitpod users, add `./build/` to your `$PATH` and you should be good to go!
+For non-Gitpod users, add the (absolute path to the) `build/` directory to your `$PATH` and you should be good to go!
 
 ## License
 
