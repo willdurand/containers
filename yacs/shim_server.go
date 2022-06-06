@@ -43,8 +43,7 @@ func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
 		}
 
 		if config.ContainerStatus() == nil {
-			msg := fmt.Sprintf("container not yet created")
-			http.Error(w, msg, http.StatusNotFound)
+			http.Error(w, "container not yet created", http.StatusNotFound)
 			return
 		}
 
