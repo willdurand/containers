@@ -14,6 +14,7 @@ import (
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 	log "github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/constants"
 	"github.com/willdurand/containers/yacr/ipc"
 )
 
@@ -47,18 +48,6 @@ type ContainerState struct {
 	BaseContainer
 }
 
-const (
-	// StateCreating indicates that the container is being created.
-	StateCreating string = "creating"
-	// StateCreated indicates that the runtime has finished the create operation.
-	StateCreated string = "created"
-	// StateRunning indicates that the container process has executed the
-	// user-specified program but has not exited.
-	StateRunning string = "running"
-	// StateStopped indicates that the container process has exited.
-	StateStopped string = "stopped"
-)
-
 func New(rootDir string, id string, bundle string) (*ContainerState, error) {
 	containerDir := filepath.Join(rootDir, id)
 
@@ -86,7 +75,7 @@ func New(rootDir string, id string, bundle string) (*ContainerState, error) {
 		state: specs.State{
 			Version: specs.Version,
 			ID:      id,
-			Status:  StateCreating,
+			Status:  constants.StateCreating,
 			Bundle:  bundle,
 		},
 		createdAt: time.Now(),
@@ -161,15 +150,15 @@ func (c *BaseContainer) CreatedAt() time.Time {
 }
 
 func (c *BaseContainer) IsCreated() bool {
-	return c.State().Status == StateCreated
+	return c.State().Status == constants.StateCreated
 }
 
 func (c *BaseContainer) IsRunning() bool {
-	return c.State().Status == StateRunning
+	return c.State().Status == constants.StateRunning
 }
 
 func (c *BaseContainer) IsStopped() bool {
-	return c.State().Status == StateStopped
+	return c.State().Status == constants.StateStopped
 }
 
 func (c *BaseContainer) Rootfs() string {
@@ -271,7 +260,7 @@ func (c *ContainerState) Save() error {
 
 func (c *ContainerState) SaveAsCreated(pid int) error {
 	c.state.Pid = pid
-	return c.UpdateStatus(StateCreated)
+	return c.UpdateStatus(constants.StateCreated)
 }
 
 func (c *ContainerState) Destroy() error {
@@ -303,7 +292,7 @@ func (c *ContainerState) refreshContainerState() error {
 	data, err := ioutil.ReadFile(fmt.Sprintf("/proc/%d/stat", c.State().Pid))
 	// One character from the string "RSDZTW" where R is running, S is sleeping in an interruptible wait, D is waiting in uninterruptible disk sleep, Z is zombie, T is traced or stopped (on a signal), and W is paging.
 	if err != nil || bytes.SplitN(data, []byte{' '}, 3)[2][0] == 'Z' {
-		return c.UpdateStatus(StateStopped)
+		return c.UpdateStatus(constants.StateStopped)
 	}
 
 	return nil

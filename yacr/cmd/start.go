@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/constants"
 	"github.com/willdurand/containers/yacr/containers"
 	"github.com/willdurand/containers/yacr/ipc"
 )
@@ -49,7 +50,7 @@ func init() {
 					return fmt.Errorf("start: %w", err)
 				}
 
-				container.UpdateStatus(containers.StateRunning)
+				container.UpdateStatus(constants.StateRunning)
 
 				// See: https://github.com/opencontainers/runtime-spec/blob/27924127bf391ea7691924c6dcb01f3369d69fe2/config.md#poststart
 				if err := container.ExecuteHooks("Poststart"); err != nil {
