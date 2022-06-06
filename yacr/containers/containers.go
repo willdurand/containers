@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/constants"
 	"github.com/willdurand/containers/yacr/ipc"
 )
@@ -194,7 +194,7 @@ func (c *BaseContainer) ExecuteHooks(name string) error {
 	}[name]
 
 	if len(hooks) == 0 {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"id":    c.ID(),
 			"name:": name,
 		}).Debug("no hooks")
@@ -202,7 +202,7 @@ func (c *BaseContainer) ExecuteHooks(name string) error {
 		return nil
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id":    c.ID(),
 		"name:": name,
 		"hooks": hooks,
@@ -226,7 +226,7 @@ func (c *BaseContainer) ExecuteHooks(name string) error {
 		}
 
 		if err := cmd.Run(); err != nil {
-			log.WithFields(log.Fields{
+			logrus.WithFields(logrus.Fields{
 				"id":     c.ID(),
 				"name:":  name,
 				"error":  err,

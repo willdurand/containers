@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/constants"
 	"github.com/willdurand/containers/yacr/containers"
@@ -57,7 +57,7 @@ func init() {
 					return fmt.Errorf("start: %w", err)
 				}
 
-				log.WithFields(log.Fields{
+				logrus.WithFields(logrus.Fields{
 					"id": container.ID(),
 				}).Info("start: (probably) ok")
 

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/yacr/containers"
 	"github.com/willdurand/containers/yacr/ipc"
@@ -29,7 +29,7 @@ func container(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("container: %w", err)
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id":           container.ID(),
 		"initSockAddr": initSockAddr,
 	}).Debug("container: starting")
@@ -92,7 +92,7 @@ func container(cmd *cobra.Command, args []string) error {
 
 	mounts := container.Spec().Mounts
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id":     container.ID(),
 		"rootfs": rootfs,
 		"mounts": mounts,
@@ -136,7 +136,7 @@ func container(cmd *cobra.Command, args []string) error {
 		}
 
 		if err := syscall.Mount(m.Source, dest, m.Type, uintptr(flags), data); err != nil {
-			log.WithFields(log.Fields{
+			logrus.WithFields(logrus.Fields{
 				"id":          container.ID(),
 				"source":      m.Source,
 				"destination": dest,
@@ -209,10 +209,10 @@ func container(cmd *cobra.Command, args []string) error {
 	// Hooks to be run after the container has been created but before pivot_root or any equivalent operation has been called. These hooks MUST be called after the `CreateRuntime` hooks.
 	// See: https://github.com/opencontainers/runtime-spec/blob/27924127bf391ea7691924c6dcb01f3369d69fe2/config.md#createcontainer-hooks
 	if err := container.ExecuteHooks("CreateContainer"); err != nil {
-		log.WithError(err).Error("container: CreateContainer hook failed")
+		logrus.WithError(err).Error("container: CreateContainer hook failed")
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
 	}).Debug("container: pivot root")
 
@@ -262,7 +262,7 @@ func container(cmd *cobra.Command, args []string) error {
 	}
 	defer conn.Close()
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
 	}).Debug("container: waiting for start command")
 
@@ -275,12 +275,12 @@ func container(cmd *cobra.Command, args []string) error {
 	// Hooks to be run after the start operation is called but before the container process is started.
 	// See: https://github.com/opencontainers/runtime-spec/blob/27924127bf391ea7691924c6dcb01f3369d69fe2/config.md#startcontainer-hooks
 	if err := container.ExecuteHooks("StartContainer"); err != nil {
-		log.WithError(err).Error("container: StartContainer hook failed")
+		logrus.WithError(err).Error("container: StartContainer hook failed")
 	}
 
 	process := container.Spec().Process
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id":          container.ID(),
 		"processArgs": process.Args,
 	}).Info("container: executing process")

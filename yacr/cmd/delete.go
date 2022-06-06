@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/yacr/containers"
 )
@@ -26,7 +25,7 @@ func init() {
 			container, err := containers.Load(rootDir, id)
 			if err != nil {
 				if force {
-					log.WithFields(log.Fields{
+					logrus.WithFields(logrus.Fields{
 						"id": id,
 					}).Debug("delete: force deleted container")
 					os.RemoveAll(filepath.Join(rootDir, id))
@@ -43,7 +42,7 @@ func init() {
 			// Attempt to unmount all mountpoints recursively.
 			err = syscall.Unmount(container.Rootfs(), syscall.MNT_DETACH)
 			if err == nil {
-				log.WithField("id", container.ID()).Debug("delete: unmounted rootfs")
+				logrus.WithField("id", container.ID()).Debug("delete: unmounted rootfs")
 
 				// On Gitpod with containerd alone and `--snapshotter=native`,
 				// it seems to use shiftfs and there is a problem with empty
@@ -54,7 +53,7 @@ func init() {
 				for i := len(container.Spec().Mounts) - 1; i >= 0; i-- {
 					mountpoint := container.Rootfs() + container.Spec().Mounts[i].Destination
 					if err := os.Remove(mountpoint); err != nil {
-						log.WithFields(logrus.Fields{
+						logrus.WithFields(logrus.Fields{
 							"id":         container.ID(),
 							"mountpoint": mountpoint,
 							"error":      err,
@@ -72,7 +71,7 @@ func init() {
 				} {
 					mountpoint := filepath.Join(container.Spec().Root.Path, dev)
 					if err := syscall.Unmount(mountpoint, 0); err != nil {
-						log.WithFields(logrus.Fields{
+						logrus.WithFields(logrus.Fields{
 							"id":         container.ID(),
 							"mountpoint": mountpoint,
 							"error":      err,
@@ -83,7 +82,7 @@ func init() {
 				for i := len(container.Spec().Mounts) - 1; i >= 0; i-- {
 					mountpoint := container.Rootfs() + container.Spec().Mounts[i].Destination
 					if err := syscall.Unmount(mountpoint, syscall.MNT_DETACH); err != nil {
-						log.WithFields(logrus.Fields{
+						logrus.WithFields(logrus.Fields{
 							"id":         container.ID(),
 							"mountpoint": mountpoint,
 							"error":      err,
@@ -101,7 +100,7 @@ func init() {
 				return fmt.Errorf("delete: %w", err)
 			}
 
-			log.WithFields(log.Fields{
+			logrus.WithFields(logrus.Fields{
 				"id": container.ID(),
 			}).Info("delete: ok")
 

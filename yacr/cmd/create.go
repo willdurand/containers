@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/yacr/containers"
 	"github.com/willdurand/containers/yacr/ipc"
 	"golang.org/x/sys/unix"
@@ -65,7 +65,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create: %w", err)
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
 	}).Debug("create: new container created")
 
@@ -156,7 +156,7 @@ func create(cmd *cobra.Command, args []string) error {
 		},
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id":      container.ID(),
 		"process": containerProcess.String(),
 	}).Debug("create: container process configured")
@@ -168,7 +168,7 @@ func create(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("create: %w", err)
 		}
 
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"id":            container.ID(),
 			"consoleSocket": consoleSocket,
 		}).Debug("create: start container process with pty")
@@ -196,7 +196,7 @@ func create(cmd *cobra.Command, args []string) error {
 		oob := unix.UnixRights(int(ptmx.Fd()))
 		uc.WriteMsgUnix([]byte(ptmx.Name()), oob, nil)
 	} else {
-		log.WithFields(log.Fields{
+		logrus.WithFields(logrus.Fields{
 			"id": container.ID(),
 		}).Debug("create: start container process without pty")
 
@@ -220,7 +220,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create: %w", err)
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
 	}).Debug("create: container successfully started")
 
@@ -274,7 +274,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create: %w", err)
 	}
 
-	log.WithFields(log.Fields{
+	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
 	}).Info("create: ok")
 

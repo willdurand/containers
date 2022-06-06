@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"syscall"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/yacr/containers"
 )
@@ -43,7 +43,7 @@ func init() {
 				}
 			}
 
-			log.WithFields(log.Fields{
+			logrus.WithFields(logrus.Fields{
 				"id":     container.ID(),
 				"signal": signal,
 			}).Info("kill: ok")
