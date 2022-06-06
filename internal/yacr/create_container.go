@@ -30,10 +30,10 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 	logrus.WithFields(logrus.Fields{
 		"id":           container.ID(),
 		"initSockAddr": initSockAddr,
-	}).Debug("starting")
+	}).Debug("booting")
 
 	// Connect to the initial socket to tell the host (runtime) that this
-	// process has started.
+	// process has booted.
 	initConn, err := net.Dial("unix", initSockAddr)
 	if err != nil {
 		return fmt.Errorf("failed to dial init socket: %w", err)
@@ -52,7 +52,7 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 	defer listener.Close()
 
 	// Notify the host that we are alive.
-	if err := ipc.SendMessage(initConn, ipc.CONTAINER_STARTED); err != nil {
+	if err := ipc.SendMessage(initConn, ipc.CONTAINER_BOOTED); err != nil {
 		return err
 	}
 	initConn.Close()

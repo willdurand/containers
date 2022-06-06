@@ -6,11 +6,14 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+	"github.com/willdurand/containers/internal/runtime"
 )
 
 const (
+	consoleSocketName    = "console.sock"
 	containerLogFileName = "container.log"
 	containerPidFileName = "container.pid"
 	runtimeLogFileName   = "runtime.log"
@@ -19,16 +22,18 @@ const (
 )
 
 type Yacs struct {
-	baseDir          string
-	bundleDir        string
-	ContainerID      string
-	ContainerLogFile string
-	containerStatus  *ContainerStatus
-	runtime          string
-	runtimePath      string
-	exitCommand      string
-	exitCommandArgs  []string
-	Exit             chan struct{}
+	ContainerID          string
+	ContainerLogFilePath string
+	Exit                 chan struct{}
+	baseDir              string
+	bundleDir            string
+	containerSpec        runtimespec.Spec
+	containerStatus      *ContainerStatus
+	exitCommand          string
+	exitCommandArgs      []string
+	runtime              string
+	runtimePath          string
+	stdioDir             string
 }
 
 // NewShimFromFlags creates a new shim from a set of (command) flags. This
@@ -46,16 +51,26 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 
 	rootDir, _ := flags.GetString("root")
 
-	bundle, _ := flags.GetString("bundle")
+	bundleDir, _ := flags.GetString("bundle")
+	spec, err := runtime.LoadSpec(bundleDir)
+	if err != nil {
+		return nil, err
+	}
+
 	containerId, _ := flags.GetString("container-id")
 	containerLogFile, _ := flags.GetString("container-log-file")
 	exitCommand, _ := flags.GetString("exit-command")
 	exitCommandArgs, _ := flags.GetStringArray("exit-command-arg")
 	runtime, _ := flags.GetString("runtime")
+	stdioDir, _ := flags.GetString("stdio-dir")
 
 	baseDir := filepath.Join(rootDir, containerId)
 	if err := os.MkdirAll(baseDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create container directory: %w", err)
+	}
+
+	if stdioDir == "" {
+		stdioDir = baseDir
 	}
 
 	runtimePath, err := exec.LookPath(runtime)
@@ -68,16 +83,18 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 	}
 
 	return &Yacs{
-		ContainerID:      containerId,
-		ContainerLogFile: containerLogFile,
-		Exit:             make(chan struct{}),
-		baseDir:          baseDir,
-		bundleDir:        bundle,
-		containerStatus:  nil,
-		runtime:          runtime,
-		runtimePath:      runtimePath,
-		exitCommand:      exitCommand,
-		exitCommandArgs:  exitCommandArgs,
+		ContainerID:          containerId,
+		ContainerLogFilePath: containerLogFile,
+		Exit:                 make(chan struct{}),
+		baseDir:              baseDir,
+		bundleDir:            bundleDir,
+		containerSpec:        spec,
+		containerStatus:      nil,
+		exitCommand:          exitCommand,
+		exitCommandArgs:      exitCommandArgs,
+		runtime:              runtime,
+		runtimePath:          runtimePath,
+		stdioDir:             stdioDir,
 	}, nil
 }
 
@@ -125,4 +142,10 @@ func (y *Yacs) runtimeArgs() []string {
 // CLI flag (`--pid-file`).
 func (y *Yacs) containerPidFilePath() string {
 	return filepath.Join(y.baseDir, containerPidFileName)
+}
+
+// consoleSocketPath returns the path to the console socket that is used by the
+// container when it must create a PTY.
+func (y *Yacs) consoleSocketPath() string {
+	return filepath.Join(y.baseDir, consoleSocketName)
 }

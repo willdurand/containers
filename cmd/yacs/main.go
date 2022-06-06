@@ -38,6 +38,7 @@ func init() {
 	shimCmd.Flags().String("exit-command", "", "path to the exit command to execute when the container has exited")
 	shimCmd.Flags().StringArray("exit-command-arg", []string{}, "argument to pass to the execute command")
 	shimCmd.Flags().String("runtime", "yacr", "container runtime to use")
+	shimCmd.Flags().String("stdio-dir", "", "the directory to use when creating the stdio named pipes")
 }
 
 func main() {

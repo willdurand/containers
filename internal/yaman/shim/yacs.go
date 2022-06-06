@@ -13,7 +13,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
@@ -79,8 +81,98 @@ func Load(rootDir, id string) (*Yacs, error) {
 	return shim, nil
 }
 
+// Start starts a shim process, which will create a container by invoking an
+// OCI runtime.
+func (s *Yacs) Start(rootDir string) error {
+	// Look up the path to the `yacs` shim binary.
+	yacs, err := exec.LookPath("yacs")
+	if err != nil {
+		return err
+	}
+
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	// Prepare a list of arguments for `yacs`.
+	args := []string{
+		"--bundle", s.Container.BaseDir,
+		"--container-id", s.Container.ID,
+		"--container-log-file", s.Container.LogFilePath,
+		"--stdio-dir", s.Container.BaseDir,
+		"--runtime", s.Opts.Runtime,
+		"--exit-command", self,
+		"--exit-command-arg", "--root",
+		"--exit-command-arg", rootDir,
+		"--exit-command-arg", "container",
+		"--exit-command-arg", "cleanup",
+		"--exit-command-arg", s.Container.ID,
+	}
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		args = append(args, []string{
+			// For the exit command...
+			"--exit-command-arg", "--debug",
+			// ...and for the shim.
+			"--debug",
+		}...)
+	}
+
+	// Create the command to execute to start the shim.
+	shimCmd := exec.Command(yacs, args...)
+
+	logrus.WithFields(logrus.Fields{
+		"command": shimCmd.String(),
+	}).Debug("start shim")
+
+	data, err := shimCmd.Output()
+	if err != nil {
+		logrus.WithError(err).Error("failed to start shim")
+		return err
+	}
+
+	// When `yacs` starts, it should print a unix socket path to the standard
+	// output so that we can communicate with it via a HTTP API.
+	s.SocketPath = strings.TrimSpace(string(data))
+
+	// In theory, `yacs` should only print the socket path when it has fully
+	// initialized itself but that does not seem to work very well so let's wait
+	// a bit to make sure the shim is ready...
+	for i := 0; i < 10; i++ {
+		time.Sleep(50 * time.Millisecond)
+
+		if _, err := s.GetState(); err == nil {
+			s.Container.StartedAt = time.Now()
+			break
+		}
+	}
+
+	if !s.Container.IsStarted() {
+		return fmt.Errorf("failed to start container")
+	}
+
+	// Persist the state of the shim to disk.
+	data, err = json.Marshal(s)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(s.stateFilePath(), data, 0o644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetState queries the shim to retrieve its state and returns it.
 func (s *Yacs) GetState() (*YacsState, error) {
+	// When a shim is terminated, the `State` property should be non-nil and
+	// that's what we return instead of attempting to communicate with the no
+	// longer existing shim.
+	if s.State != nil {
+		return s.State, nil
+	}
+
 	c, err := s.getHttpClient()
 	if err != nil {
 		return nil, err
@@ -216,8 +308,16 @@ func (s *Yacs) CopyLogs(stdout io.Writer, stderr io.Writer, withTimestamps bool)
 	return nil
 }
 
-// StopContainer stops the container by sending a SIGTERM signal first and a
-// SIGKILL if the first signal didn't stop the container.
+// StartContainer tells the shim to start a container that was previously
+// created.
+func (s *Yacs) StartContainer() error {
+	return s.sendCommand(url.Values{
+		"cmd": []string{"start"},
+	})
+}
+
+// StopContainer tells the shim to stop the container by sending a SIGTERM
+// signal first and a SIGKILL if the first signal didn't stop the container.
 func (s *Yacs) StopContainer() error {
 	if err := s.sendCommand(url.Values{
 		"cmd":    []string{"kill"},
@@ -243,6 +343,26 @@ func (s *Yacs) StopContainer() error {
 	}
 
 	return nil
+}
+
+// OpenStreams opens and returns the stdio streams of the container.
+func (s *Yacs) OpenStreams() (*os.File, *os.File, *os.File, error) {
+	stdin, err := os.OpenFile(filepath.Join(s.Container.BaseDir, "0"), os.O_WRONLY, os.ModeNamedPipe)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	stdout, err := os.Open(filepath.Join(s.Container.BaseDir, "1"))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	stderr, err := os.Open(filepath.Join(s.Container.BaseDir, "2"))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return stdin, stdout, stderr, nil
 }
 
 func (s *Yacs) sendCommand(values url.Values) error {

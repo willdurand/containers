@@ -18,7 +18,6 @@ import (
 
 type ContainerOpts struct {
 	Name     string
-	Detach   bool
 	Command  []string
 	Remove   bool
 	Hostname string

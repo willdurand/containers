@@ -15,6 +15,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/sevlyar/go-daemon v0.1.5
 	github.com/sirupsen/logrus v1.8.1
+	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 )
 
 require (
