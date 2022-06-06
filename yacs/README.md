@@ -198,7 +198,8 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
   },
   "status": {
     "exitStatus": 123,
-    "exited": true
+    "exited": true,
+    "pid": 44488
   }
 }
 ```

@@ -15,7 +15,9 @@ import (
 	"github.com/willdurand/containers/yacs/config"
 )
 
-func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
+// createHttpServer creates a HTTP server to expose an API to interact with the
+// shim.
+func createHttpServer(cfg *config.ShimConfig, logger *logrus.Entry) {
 	server := http.Server{}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -28,11 +30,13 @@ func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
 
 		switch r.Method {
 		case "GET":
-			sendShimState(w, config)
+			sendShimStateOrHttpError(w, cfg)
 			return
 		case "POST":
-			break
+			processCommand(w, r, cfg)
+			return
 		case "DELETE":
+			// Shutdown the shim.
 			w.Write([]byte("BYE\n"))
 			cancel()
 			return
@@ -41,92 +45,17 @@ func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
 			http.Error(w, msg, http.StatusMethodNotAllowed)
 			return
 		}
-
-		if config.ContainerStatus() == nil {
-			http.Error(w, "container not yet created", http.StatusNotFound)
-			return
-		}
-
-		cmd := r.FormValue("cmd")
-		switch cmd {
-		case "start":
-			state := getContainerState(w, config)
-			if state == nil {
-				return
-			}
-
-			if state.Status != constants.StateCreated {
-				msg := fmt.Sprintf("container '%s' is %s", config.ContainerID(), state.Status)
-				http.Error(w, msg, http.StatusBadRequest)
-				return
-			}
-
-			_, err := executeRuntime(w, config, []string{"start", config.ContainerID()})
-			if err != nil {
-				return
-			}
-
-			sendShimState(w, config)
-
-		case "kill":
-			state := getContainerState(w, config)
-			if state == nil {
-				return
-			}
-
-			if state.Status != constants.StateRunning {
-				msg := fmt.Sprintf("container '%s' is %s", config.ContainerID(), state.Status)
-				http.Error(w, msg, http.StatusBadRequest)
-				return
-			}
-
-			// TODO: handle string values and maybe use constants...
-			signal := "15"
-			if sig := r.FormValue("signal"); sig != "" {
-				signal = sig
-			}
-
-			_, err := executeRuntime(w, config, []string{"kill", config.ContainerID(), signal})
-			if err != nil {
-				return
-			}
-
-			sendShimState(w, config)
-
-		case "delete":
-			state := getContainerState(w, config)
-			if state == nil {
-				return
-			}
-
-			if state.Status != constants.StateStopped {
-				msg := fmt.Sprintf("container '%s' is %s", config.ContainerID(), state.Status)
-				http.Error(w, msg, http.StatusBadRequest)
-				return
-			}
-
-			_, err := executeRuntime(w, config, []string{"delete", config.ContainerID()})
-			if err != nil {
-				return
-			}
-
-			w.WriteHeader(http.StatusNoContent)
-
-		default:
-			msg := fmt.Sprintf("invalid command '%s'", cmd)
-			http.Error(w, msg, http.StatusBadRequest)
-		}
 	})
 
 	http.HandleFunc("/stdout", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, config.StdoutFileName())
+		http.ServeFile(w, r, cfg.StdoutFileName())
 	})
 
 	http.HandleFunc("/stderr", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, config.StderrFileName())
+		http.ServeFile(w, r, cfg.StderrFileName())
 	})
 
-	listener, err := net.Listen("unix", config.SocketAddress())
+	listener, err := net.Listen("unix", cfg.SocketAddress())
 	if err != nil {
 		logger.WithError(err).Fatal("failed to listen to socket")
 	}
@@ -143,7 +72,88 @@ func createHttpServer(config *config.ShimConfig, logger *logrus.Entry) {
 	close(exitShim)
 }
 
-func executeRuntime(w http.ResponseWriter, cfg *config.ShimConfig, runtimeArgs []string) ([]byte, error) {
+func processCommand(w http.ResponseWriter, r *http.Request, cfg *config.ShimConfig) {
+	if cfg.ContainerStatus() == nil {
+		http.Error(w, "container not yet created", http.StatusNotFound)
+		return
+	}
+
+	cmd := r.FormValue("cmd")
+	switch cmd {
+	case "start":
+		state := getContainerStateOrHttpError(w, cfg)
+		if state == nil {
+			return
+		}
+
+		if state.Status != constants.StateCreated {
+			msg := fmt.Sprintf("container '%s' is %s", cfg.ContainerID(), state.Status)
+			http.Error(w, msg, http.StatusBadRequest)
+			return
+		}
+
+		_, err := executeRuntimeOrHttpError(w, cfg, []string{"start", cfg.ContainerID()})
+		if err != nil {
+			return
+		}
+
+		sendShimStateOrHttpError(w, cfg)
+
+	case "kill":
+		state := getContainerStateOrHttpError(w, cfg)
+		if state == nil {
+			return
+		}
+
+		if state.Status != constants.StateRunning {
+			msg := fmt.Sprintf("container '%s' is %s", cfg.ContainerID(), state.Status)
+			http.Error(w, msg, http.StatusBadRequest)
+			return
+		}
+
+		// TODO: handle string values and maybe use constants...
+		signal := "15"
+		if sig := r.FormValue("signal"); sig != "" {
+			signal = sig
+		}
+
+		_, err := executeRuntimeOrHttpError(w, cfg, []string{"kill", cfg.ContainerID(), signal})
+		if err != nil {
+			return
+		}
+
+		sendShimStateOrHttpError(w, cfg)
+
+	case "delete":
+		state := getContainerStateOrHttpError(w, cfg)
+		if state == nil {
+			return
+		}
+
+		if state.Status != constants.StateStopped {
+			msg := fmt.Sprintf("container '%s' is %s", cfg.ContainerID(), state.Status)
+			http.Error(w, msg, http.StatusBadRequest)
+			return
+		}
+
+		_, err := executeRuntimeOrHttpError(w, cfg, []string{"delete", cfg.ContainerID()})
+		if err != nil {
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+
+	default:
+		msg := fmt.Sprintf("invalid command '%s'", cmd)
+		http.Error(w, msg, http.StatusBadRequest)
+	}
+}
+
+// executeRuntimeOrHttpError runs the OCI runtime with the command and flags
+// passed in the `runtimeArgs` parameter. When something goes wrong, an HTTP
+// error is written to the response write `w` and the error is returned to the
+// caller.
+func executeRuntimeOrHttpError(w http.ResponseWriter, cfg *config.ShimConfig, runtimeArgs []string) ([]byte, error) {
 	output, err := exec.Command(
 		cfg.RuntimePath(),
 		// Add default runtime args.
@@ -152,6 +162,7 @@ func executeRuntime(w http.ResponseWriter, cfg *config.ShimConfig, runtimeArgs [
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// HACK: we should probably not parse the error message like that...
+			// Note that this should work with `runc` too, though.
 			if bytes.Contains(exitError.Stderr, []byte("does not exist")) {
 				msg := fmt.Sprintf("container '%s' does not exist", cfg.ContainerID())
 				http.Error(w, msg, http.StatusNotFound)
@@ -165,8 +176,13 @@ func executeRuntime(w http.ResponseWriter, cfg *config.ShimConfig, runtimeArgs [
 	return output, err
 }
 
-func getContainerState(w http.ResponseWriter, cfg *config.ShimConfig) *specs.State {
-	output, err := executeRuntime(w, cfg, []string{"state", cfg.ContainerID()})
+// getContainerStateOrHttpError returns the container state to the caller unless
+// an error occurs, in which case an HTTP error is written to the response
+// writer `w` and `nil` is returned.
+//
+// The container state is read from the OCI runtime (with the `state` command).
+func getContainerStateOrHttpError(w http.ResponseWriter, cfg *config.ShimConfig) *specs.State {
+	output, err := executeRuntimeOrHttpError(w, cfg, []string{"state", cfg.ContainerID()})
 	if err != nil {
 		return nil
 	}
@@ -180,10 +196,10 @@ func getContainerState(w http.ResponseWriter, cfg *config.ShimConfig) *specs.Sta
 	return &state
 }
 
-// sendShimState sends a HTTP response with the shim state, unless there is an
-// error in which case the error is returned to the client.
-func sendShimState(w http.ResponseWriter, cfg *config.ShimConfig) {
-	state := getContainerState(w, cfg)
+// sendShimStateOrHttpError sends a HTTP response with the shim state, unless
+// there is an error in which case the error is returned to the client.
+func sendShimStateOrHttpError(w http.ResponseWriter, cfg *config.ShimConfig) {
+	state := getContainerStateOrHttpError(w, cfg)
 	if state == nil {
 		return
 	}
