@@ -1,5 +1,7 @@
 # containers
 
+[![CI](https://github.com/willdurand/containers/actions/workflows/ci.yml/badge.svg)](https://github.com/willdurand/containers/actions/workflows/ci.yml)
+
 This is a repository with some code I wrote to **learn** more about containers. It currently contains:
 
 - [`yacr`](./yacr/): a container runtime that implements the [runtime-spec][]
