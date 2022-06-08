@@ -30,8 +30,8 @@ func NewRootCommand(programName, shortDescription string) *cobra.Command {
 	}
 
 	rootCmd.PersistentFlags().String("root", getDefaultRootDir(programName), "root directory")
-	rootCmd.PersistentFlags().String("log", "", "log file (default \"/dev/stderr\")")
-	rootCmd.PersistentFlags().String("log-format", "", "log format (default \"text\")")
+	rootCmd.PersistentFlags().String("log", "", `log file (default "/dev/stderr")`)
+	rootCmd.PersistentFlags().String("log-format", "", `log format (default "text")`)
 	rootCmd.PersistentFlags().Bool("debug", false, "enable debug logging")
 
 	return rootCmd
