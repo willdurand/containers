@@ -12,7 +12,7 @@ This runtime is known to be unsafe because:
 
 ## Getting started (standalone)
 
-**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
+**👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
 First, we need an OCI bundle, which we can create using `docker` and `runc`:
 
@@ -153,18 +153,18 @@ PID   USER     TIME  COMMAND
 
 ## Getting started with Docker
 
-**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
+**👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
 Let's create a new Docker daemon with the `yacr` runtime:
 
 ```
-$ ./bin/run-dockerd
+$ ./scripts/run-dockerd
 ```
 
-In another terminal, you can connect to this daemon by running `docker` with `-H unix:///tmp/d2/d2.socket` or use the `./bin/docker` wrapper in this repository:
+In another terminal, you can connect to this daemon by running `docker` with `-H unix:///tmp/d2/d2.socket` or use the `./scripts/docker` wrapper in this repository:
 
 ```
-$ ./bin/docker info
+$ ./scripts/docker info
 [...]
  Runtimes: gitpod io.containerd.runc.v2 io.containerd.runtime.v1.linux runc yacr
  Default Runtime: yacr
@@ -174,7 +174,7 @@ $ ./bin/docker info
 We can then use Docker as usual:
 
 ```
-$ ./bin/docker run --rm -it busybox:latest /bin/sh
+$ ./scripts/docker run --rm -it busybox:latest /bin/sh
 Unable to find image 'busybox:latest' locally
 latest: Pulling from library/busybox
 cecc78ee4075: Pull complete 
@@ -198,7 +198,7 @@ round-trip min/avg/max = 6.093/6.093/6.093 ms
 
 ## Getting started with containerd
 
-**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
+**👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
 First, [install `containerd`][install-containerd], then run `containerd` with elevated privileges:
 
@@ -215,14 +215,14 @@ $ sudo ctr images pull docker.io/library/alpine:latest
 We can now run a new container with our runtime by specifying its path with `--runc-binary` (we'll use the default "runc shim"). On Gitpod, we should also pass `--snapshotter=native` to `ctr run`. The command below will spawn an interactive shell in our container thanks to the `--tty` option:
 
 ```
-$ sudo ctr run --runc-binary=/workspace/containers/build/yacr --snapshotter=native --tty docker.io/library/alpine:latest alpine-1 /bin/sh
+$ sudo ctr run --runc-binary=/workspace/containers/bin/yacr --snapshotter=native --tty docker.io/library/alpine:latest alpine-1 /bin/sh
 / #
 ```
 
 In a different terminal, we can see list the containers with `yacr list`:
 
 ```
-$ sudo ./build/yacr --root /run/containerd/runc/default list
+$ sudo ./bin/yacr --root /run/containerd/runc/default list
 ID          STATUS      CREATED                PID         BUNDLE
 alpine-1    running     2022-05-30T22:00:00Z   18166       /run/containerd/io.containerd.runtime.v2.task/default/alpine-1
 ```

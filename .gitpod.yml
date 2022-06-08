@@ -1,7 +1,7 @@
 tasks:
   - name: bootstrap
     before: |
-      echo 'export PATH="$PATH:/workspace/containers/build/"' >> ~/.bashrc.d/100-containers
+      echo 'export PATH="$PATH:/workspace/containers/bin/"' >> ~/.bashrc.d/100-containers
 
       mkdir -p ~/.run
       chmod 700 ~/.run

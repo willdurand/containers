@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/willdurand/containers/cmd"
+	"github.com/willdurand/containers/pkg/cmd"
 )
 
 const (

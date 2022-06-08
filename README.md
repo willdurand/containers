@@ -4,8 +4,8 @@
 
 This is a repository with some code I wrote to **learn** more about containers. It currently contains:
 
-- [`yacr`](./yacr/): a container runtime that implements the [runtime-spec][]
-- [`yacs`](./yacs/): a container shim with an (HTTP) API
+- [`yacr`](./cmd/yacr/README.md): a container runtime that implements the [runtime-spec][]
+- [`yacs`](./cmd/yacs/README.md): a container shim with an (HTTP) API
 
 For more information, please refer to the documentation of each sub-project.
 
@@ -19,7 +19,7 @@ The easiest and quickest way to get started is to build all sub-projects:
 $ make all
 ```
 
-For non-Gitpod users, add the (absolute path to the) `build/` directory to your `$PATH` and you should be good to go!
+For non-Gitpod users, add the (absolute path to the) `bin/` directory to your `$PATH` and you should be good to go!
 
 ## License
 
