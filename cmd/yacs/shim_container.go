@@ -10,7 +10,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/yacs/config"
+	"github.com/willdurand/containers/cmd/yacs/config"
 )
 
 // createContainer creates a new container when the shim is started.

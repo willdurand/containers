@@ -12,8 +12,8 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
-	"github.com/willdurand/containers/yacr/containers"
-	"github.com/willdurand/containers/yacr/ipc"
+	"github.com/willdurand/containers/cmd/yacr/containers"
+	"github.com/willdurand/containers/cmd/yacr/ipc"
 	"golang.org/x/sys/unix"
 
 	"github.com/opencontainers/runtime-spec/specs-go"

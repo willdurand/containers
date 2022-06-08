@@ -11,8 +11,8 @@ import (
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"github.com/willdurand/containers/constants"
-	"github.com/willdurand/containers/yacs/config"
+	"github.com/willdurand/containers/cmd/yacs/config"
+	"github.com/willdurand/containers/pkg/constants"
 )
 
 // createHttpServer creates a HTTP server to expose an API to interact with the

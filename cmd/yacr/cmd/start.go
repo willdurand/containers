@@ -6,9 +6,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/constants"
-	"github.com/willdurand/containers/yacr/containers"
-	"github.com/willdurand/containers/yacr/ipc"
+	"github.com/willdurand/containers/cmd/yacr/containers"
+	"github.com/willdurand/containers/cmd/yacr/ipc"
+	"github.com/willdurand/containers/pkg/constants"
 )
 
 func init() {

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/yacr/containers"
+	"github.com/willdurand/containers/cmd/yacr/containers"
 )
 
 func init() {

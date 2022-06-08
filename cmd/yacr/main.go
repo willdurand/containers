@@ -2,7 +2,7 @@
 package main
 
 import (
-	"github.com/willdurand/containers/yacr/cmd"
+	"github.com/willdurand/containers/cmd/yacr/cmd"
 )
 
 func main() {

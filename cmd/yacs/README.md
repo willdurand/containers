@@ -6,7 +6,7 @@ This is an example of a container shim that exposes an HTTP API[^1] to control t
 
 ## Getting started with an example
 
-**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
+**👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
 First, we need a new bundle:
 
@@ -228,7 +228,7 @@ BYE
 
 ## Getting started with `runc`
 
-**👋 Make sure to [follow these instructions](../README.md#building-this-project) first.**
+**👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
 This shim should be able to use any OCI-compliant runtime like [`runc`][runc] (the reference implementation). Let's reproduce what was done in the previous section but with `runc`.
 

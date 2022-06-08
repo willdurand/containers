@@ -2,7 +2,7 @@
 package main
 
 import (
-	"github.com/willdurand/containers/cmd"
+	"github.com/willdurand/containers/pkg/cmd"
 )
 
 func main() {

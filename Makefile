@@ -6,22 +6,22 @@ MAKEFLAGS += --warn-undefined-variables
 .SUFFIXES:
 
 git_hash  := $(shell git rev-parse --short HEAD)
-build_dir := build
+bin_dir   := bin
 
-go_build_flags := -ldflags "-X github.com/willdurand/containers/version.GitCommit=$(git_hash)"
+go_build_flags := -ldflags "-X github.com/willdurand/containers/internal/version.GitCommit=$(git_hash)"
 
 all: ## build all binaries
 all: yacr yacs
 .PHONY: all
 
 yacr: ## build the container runtime
-	@mkdir -p $(build_dir)
-	cd $@ && go build $(go_build_flags) -o "../$(build_dir)/$@"
+	@mkdir -p $(bin_dir)
+	cd cmd/$@ && go build $(go_build_flags) -o "../../$(bin_dir)/$@"
 .PHONY: yacr
 
 yacs: ## build the container shim
-	@mkdir -p $(build_dir)
-	cd $@ && go build $(go_build_flags) -o "../$(build_dir)/$@"
+	@mkdir -p $(bin_dir)
+	cd cmd/$@ && go build $(go_build_flags) -o "../../$(bin_dir)/$@"
 .PHONY: yacs
 
 alpine_bundle: ## create a rootless bundle (for testing purposes)

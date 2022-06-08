@@ -6,8 +6,8 @@ import (
 	"github.com/sevlyar/go-daemon"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd"
-	"github.com/willdurand/containers/yacs/config"
+	"github.com/willdurand/containers/cmd/yacs/config"
+	"github.com/willdurand/containers/pkg/cmd"
 	"golang.org/x/sys/unix"
 )
 

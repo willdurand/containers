@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/writer"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/version"
+	"github.com/willdurand/containers/internal/version"
 )
 
 // NewRootCommand creates a new root (base) command for a program. The caller is
@@ -37,8 +37,8 @@ func NewRootCommand(programName, shortDescription string) *cobra.Command {
 	return rootCmd
 }
 
-func Execute(c *cobra.Command) {
-	if err := c.Execute(); err != nil {
+func Execute(cmd *cobra.Command) {
+	if err := cmd.Execute(); err != nil {
 		logrus.Error(err)
 
 		if !logToStderr() {
