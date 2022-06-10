@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/cmd/yacs/yacs"
-	"github.com/willdurand/containers/pkg/cmd"
+	"github.com/willdurand/containers/pkg/cli"
 	"golang.org/x/sys/unix"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 // shimCmd represents the shim command (which is the base command).
-var shimCmd = cmd.NewRootCommand(
+var shimCmd = cli.NewRootCommand(
 	programName,
 	"Yet another container shim",
 )
@@ -34,7 +34,7 @@ func init() {
 }
 
 func main() {
-	cmd.Execute(shimCmd)
+	cli.Execute(shimCmd)
 }
 
 func run(cmd *cobra.Command, args []string) error {
