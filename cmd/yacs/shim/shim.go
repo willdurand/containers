@@ -1,4 +1,4 @@
-package yacs
+package shim
 
 import (
 	"fmt"
