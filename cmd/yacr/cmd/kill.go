@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"strconv"
 	"syscall"
 
+	"github.com/docker/docker/pkg/signal"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/cmd/yacr/containers"
@@ -17,14 +17,10 @@ func init() {
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id := args[0]
-			signal := 15 // SIGTERM
 
-			if len(args) > 1 {
-				sig, err := strconv.Atoi(args[1])
-				if err != nil {
-					return fmt.Errorf("kill: failed to parse signal value: %w", err)
-				}
-				signal = sig
+			signal, err := signal.ParseSignal(args[1])
+			if err != nil {
+				signal = syscall.SIGTERM
 			}
 
 			rootDir, _ := cmd.Flags().GetString("root")
