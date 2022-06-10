@@ -13,7 +13,7 @@ type ContainerStatus struct {
 }
 
 func (s *ContainerStatus) Exited() bool {
-	return s.WaitStatus != nil && s.WaitStatus.Exited()
+	return s.WaitStatus != nil
 }
 
 // ExitStatus returns the exit status (code) of the container process when it
@@ -49,12 +49,13 @@ func (s *ContainerStatus) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if pid, ok := v["pid"].(int); ok {
-		s.PID = pid
+	if pid, ok := v["pid"].(float64); ok {
+		s.PID = int(pid)
 	}
-	if waitStatus, ok := v["waitStatus"].(syscall.WaitStatus); ok {
-		s.WaitStatus = new(syscall.WaitStatus)
-		*s.WaitStatus = waitStatus
+	if waitStatus, ok := v["waitStatus"].(float64); ok {
+		wstatus := new(syscall.WaitStatus)
+		*wstatus = syscall.WaitStatus(waitStatus)
+		s.WaitStatus = wstatus
 	}
 
 	return nil
