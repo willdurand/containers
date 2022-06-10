@@ -97,4 +97,19 @@ func (s *Shim) CreateContainer(logger *logrus.Entry) {
 	logger.WithFields(logrus.Fields{
 		"exitStatus": s.containerStatus.ExitStatus(),
 	}).Info("container exited")
+
+	if s.exitCommand != "" {
+		exit := exec.Cmd{
+			Path:   s.exitCommand,
+			Args:   append([]string{s.exitCommand}, s.exitCommandArgs...),
+			Stdin:  nil,
+			Stdout: nil,
+			Stderr: nil,
+		}
+		logger.WithField("command", exit.String()).Debug("execute exit command")
+
+		if err := exit.Run(); err != nil {
+			logger.WithError(err).Warn("exit command failed")
+		}
+	}
 }

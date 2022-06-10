@@ -31,6 +31,8 @@ func init() {
 	shimCmd.Flags().String("container-id", "", "container id")
 	shimCmd.MarkFlagRequired("container-id")
 	shimCmd.Flags().String("runtime", "yacr", "container runtime to use")
+	shimCmd.Flags().String("exit-command", "", "path to the exit command to execute when the container has exited")
+	shimCmd.Flags().StringArray("exit-command-arg", []string{}, "argument to pass to the execute command")
 }
 
 func main() {

@@ -17,6 +17,8 @@ type Shim struct {
 	containerStatus *ContainerStatus
 	runtime         string
 	runtimePath     string
+	exitCommand     string
+	exitCommandArgs []string
 	Exit            chan struct{}
 }
 
@@ -38,12 +40,14 @@ func NewFromFlags(flags *pflag.FlagSet) (*Shim, error) {
 	containerId, _ := flags.GetString("container-id")
 	runtime, _ := flags.GetString("runtime")
 	debug, _ := flags.GetBool("debug")
+	exitCommand, _ := flags.GetString("exit-command")
+	exitCommandArgs, _ := flags.GetStringArray("exit-command-arg")
 
-	return newShimConfig(rootDir, bundle, containerId, runtime, debug)
+	return newShimConfig(rootDir, bundle, containerId, runtime, exitCommand, exitCommandArgs, debug)
 }
 
 // newShimConfig creates a new shim configuration.
-func newShimConfig(rootDir, bundle, containerId, runtime string, debug bool) (*Shim, error) {
+func newShimConfig(rootDir, bundle, containerId, runtime string, exitProgram string, exitCommandArgs []string, debug bool) (*Shim, error) {
 	containerDir := filepath.Join(rootDir, containerId)
 	if err := os.MkdirAll(containerDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create container directory: %w", err)
@@ -61,6 +65,8 @@ func newShimConfig(rootDir, bundle, containerId, runtime string, debug bool) (*S
 		containerStatus: nil,
 		runtime:         runtime,
 		runtimePath:     runtimePath,
+		exitCommand:     exitProgram,
+		exitCommandArgs: exitCommandArgs,
 		Exit:            make(chan struct{}),
 	}, nil
 }
