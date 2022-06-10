@@ -1,5 +1,5 @@
-// Package cmd contains the common features used to build CLI applications.
-package cmd
+// Package cli contains the common features used to build CLI applications.
+package cli
 
 import (
 	"errors"
