@@ -1,4 +1,4 @@
-package config
+package yacs
 
 import (
 	"encoding/json"
