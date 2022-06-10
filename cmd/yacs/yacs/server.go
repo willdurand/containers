@@ -56,12 +56,12 @@ func (s *Shim) CreateHttpServer(logger *logrus.Entry) {
 
 	listener, err := net.Listen("unix", s.SocketAddress())
 	if err != nil {
-		logger.WithError(err).Fatal("failed to listen to socket")
+		logger.WithError(err).Panic("failed to listen to socket")
 	}
 
 	go func() {
 		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
-			logger.WithError(err).Fatal("serve() failed")
+			logger.WithError(err).Panic("serve() failed")
 		}
 	}()
 
