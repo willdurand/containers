@@ -19,7 +19,7 @@ import (
 func (s *Shim) CreateContainer(logger *logrus.Entry) {
 	outRead, outWrite, err := os.Pipe()
 	if err != nil {
-		logger.WithError(err).Fatal("failed to create out pipe")
+		logger.WithError(err).Panic("failed to create out pipe")
 	}
 	defer outRead.Close()
 	defer outWrite.Close()
@@ -30,7 +30,7 @@ func (s *Shim) CreateContainer(logger *logrus.Entry) {
 
 	errRead, errWrite, err := os.Pipe()
 	if err != nil {
-		logger.WithError(err).Fatal("failed to create err pipe")
+		logger.WithError(err).Panic("failed to create err pipe")
 	}
 	defer errRead.Close()
 	defer errWrite.Close()
@@ -61,7 +61,7 @@ func (s *Shim) CreateContainer(logger *logrus.Entry) {
 	}).Info("creating container")
 
 	if err := runtimeCommand.Run(); err != nil {
-		logger.WithError(err).Fatal("failed to create container")
+		logger.WithError(err).Panic("failed to create container")
 	}
 	logger.Debug("container created")
 
@@ -70,11 +70,11 @@ func (s *Shim) CreateContainer(logger *logrus.Entry) {
 	// PID to be able to interact with the container directly.
 	data, err := os.ReadFile(s.containerPidFileName())
 	if err != nil {
-		logger.WithError(err).Fatalf("failed to read '%s'", s.containerPidFileName())
+		logger.WithError(err).Panicf("failed to read '%s'", s.containerPidFileName())
 	}
 	containerPid, err := strconv.Atoi(string(bytes.TrimSpace(data)))
 	if err != nil {
-		logger.WithError(err).Fatalf("failed to parse pid from '%s'", s.containerPidFileName())
+		logger.WithError(err).Panicf("failed to parse pid from '%s'", s.containerPidFileName())
 	}
 
 	// At this point, the shim knows that the runtime has successfully created a
@@ -86,7 +86,7 @@ func (s *Shim) CreateContainer(logger *logrus.Entry) {
 	var rusage syscall.Rusage
 	_, err = syscall.Wait4(containerPid, &wstatus, 0, &rusage)
 	if err != nil {
-		logger.WithError(err).Fatal("wait4() failed")
+		logger.WithError(err).Panic("wait4() failed")
 	}
 
 	s.setContainerStatus(&ContainerStatus{
