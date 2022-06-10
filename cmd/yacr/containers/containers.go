@@ -87,7 +87,6 @@ func New(rootDir string, id string, bundle string) (*ContainerState, error) {
 }
 
 func Load(rootDir string, id string) (*ContainerState, error) {
-	// Create a new container without bundle, which will create the container state *without* the OCI bundle configuration. This is OK because we are going to load the state right after, which will contain the path to the bundle. From there, we'll be able to load the bundle config.
 	container, err := New(rootDir, id, "")
 	if err != nil {
 		return container, err
@@ -105,6 +104,19 @@ func Load(rootDir string, id string) (*ContainerState, error) {
 		return container, err
 	}
 
+	return container, nil
+}
+
+func LoadWithBundleConfig(rootDir string, id string) (*ContainerState, error) {
+	// Create a new container without bundle, which will create the container
+	// state *without* the OCI bundle configuration. This is OK because we are
+	// going to load the state right after, which will contain the path to the
+	// bundle. From there, we'll be able to load the bundle config.
+	container, err := Load(rootDir, id)
+	if err != nil {
+		return container, err
+	}
+
 	spec, err := loadBundleConfig(container.state.Bundle)
 	if err != nil {
 		return container, err
@@ -117,7 +129,7 @@ func Load(rootDir string, id string) (*ContainerState, error) {
 func LoadFromContainer(rootDir string, id string) (*BaseContainer, error) {
 	container := &BaseContainer{}
 
-	c, err := Load(rootDir, id)
+	c, err := LoadWithBundleConfig(rootDir, id)
 	if err != nil {
 		return container, err
 	}

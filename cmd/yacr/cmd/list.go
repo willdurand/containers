@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/cmd/yacr/containers"
 )
@@ -35,6 +36,10 @@ func init() {
 
 					container, err := containers.Load(rootDir, f.Name())
 					if err != nil {
+						logrus.WithFields(logrus.Fields{
+							"id":    f.Name(),
+							"error": err,
+						}).Debug("failed to load container")
 						continue
 					}
 

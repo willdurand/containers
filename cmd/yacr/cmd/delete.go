@@ -22,7 +22,7 @@ func init() {
 			force, _ := cmd.Flags().GetBool("force")
 
 			rootDir, _ := cmd.Flags().GetString("root")
-			container, err := containers.Load(rootDir, id)
+			container, err := containers.LoadWithBundleConfig(rootDir, id)
 			if err != nil {
 				if force {
 					logrus.WithFields(logrus.Fields{
