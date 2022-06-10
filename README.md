@@ -17,9 +17,8 @@ The easiest and quickest way to get started is to build all sub-projects:
 
 ```
 $ make all
+$ sudo make install
 ```
-
-For non-Gitpod users, add the (absolute path to the) `bin/` directory to your `$PATH` and you should be good to go!
 
 ## License
 
