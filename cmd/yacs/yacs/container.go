@@ -17,6 +17,19 @@ import (
 // capture the container `stdout` and `stderr` streams and write their contents
 // to files.
 func (s *Shim) CreateContainer(logger *logrus.Entry) {
+	defer func() {
+		if s.containerStatus == nil {
+			args := append(s.runtimeArgs(), []string{
+				"delete", s.ContainerID(), "--force",
+			}...)
+			if err := exec.Command(s.runtimePath, args...).Run(); err != nil {
+				logger.WithError(err).Error("failed to force delete container")
+			}
+
+			s.Destroy()
+		}
+	}()
+
 	outRead, outWrite, err := os.Pipe()
 	if err != nil {
 		logger.WithError(err).Panic("failed to create out pipe")
