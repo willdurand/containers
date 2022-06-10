@@ -28,7 +28,7 @@ func init() {
 			}
 
 			rootDir, _ := cmd.Flags().GetString("root")
-			container, err := containers.Load(rootDir, id)
+			container, err := containers.LoadWithBundleConfig(rootDir, id)
 			if err != nil {
 				return fmt.Errorf("kill: %w", err)
 			}

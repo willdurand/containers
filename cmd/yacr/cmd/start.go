@@ -19,7 +19,7 @@ func init() {
 			SilenceUsage: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
 				rootDir, _ := cmd.Flags().GetString("root")
-				container, err := containers.Load(rootDir, args[0])
+				container, err := containers.LoadWithBundleConfig(rootDir, args[0])
 				if err != nil {
 					return fmt.Errorf("start: %w", err)
 				}
