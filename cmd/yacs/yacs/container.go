@@ -1,4 +1,4 @@
-package main
+package yacs
 
 import (
 	"bytes"
@@ -9,16 +9,14 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd/yacs/config"
 )
 
-// createContainer creates a new container when the shim is started.
+// CreateContainer creates a new container when the shim is started.
 //
 // The container is created but not started. This function also creates pipes to
 // capture the container `stdout` and `stderr` streams and write their contents
 // to files.
-func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Command) {
+func (s *Shim) CreateContainer(logger *logrus.Entry) {
 	outRead, outWrite, err := os.Pipe()
 	if err != nil {
 		logger.WithError(err).Fatal("failed to create out pipe")
@@ -27,7 +25,7 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 	defer outWrite.Close()
 
 	// Store the container's stdout to a file.
-	outFile, _ := os.OpenFile(cfg.StdoutFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
+	outFile, _ := os.OpenFile(s.stdoutFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
 	go io.Copy(outFile, outRead)
 
 	errRead, errWrite, err := os.Pipe()
@@ -38,20 +36,20 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 	defer errWrite.Close()
 
 	// Store the container's stderr to a file.
-	errFile, _ := os.OpenFile(cfg.StderrFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
+	errFile, _ := os.OpenFile(s.stderrFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
 	go io.Copy(errFile, errRead)
 
 	runtimeArgs := append(
-		[]string{cfg.Runtime()},
-		append(cfg.RuntimeArgs(), []string{
-			"create", cfg.ContainerID(),
-			"--bundle", cfg.Bundle(),
-			"--pid-file", cfg.ContainerPidFileName(),
+		[]string{s.runtime},
+		append(s.runtimeArgs(), []string{
+			"create", s.ContainerID(),
+			"--bundle", s.bundle,
+			"--pid-file", s.containerPidFileName(),
 		}...)...,
 	)
 
-	process := &exec.Cmd{
-		Path:   cfg.RuntimePath(),
+	runtimeCommand := &exec.Cmd{
+		Path:   s.runtimePath,
 		Args:   runtimeArgs,
 		Stdin:  nil,
 		Stdout: outWrite,
@@ -59,10 +57,10 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 	}
 
 	logger.WithFields(logrus.Fields{
-		"command": process.String(),
+		"command": runtimeCommand.String(),
 	}).Info("creating container")
 
-	if err := process.Run(); err != nil {
+	if err := runtimeCommand.Run(); err != nil {
 		logger.WithError(err).Fatal("failed to create container")
 	}
 	logger.Debug("container created")
@@ -70,18 +68,18 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 	// The runtime should have written the container's PID to a file because
 	// that's how the runtime passes this value to the shim. The shim needs the
 	// PID to be able to interact with the container directly.
-	data, err := os.ReadFile(cfg.ContainerPidFileName())
+	data, err := os.ReadFile(s.containerPidFileName())
 	if err != nil {
-		logger.WithError(err).Fatalf("failed to read '%s'", cfg.ContainerPidFileName())
+		logger.WithError(err).Fatalf("failed to read '%s'", s.containerPidFileName())
 	}
 	containerPid, err := strconv.Atoi(string(bytes.TrimSpace(data)))
 	if err != nil {
-		logger.WithError(err).Fatalf("failed to parse pid from '%s'", cfg.ContainerPidFileName())
+		logger.WithError(err).Fatalf("failed to parse pid from '%s'", s.containerPidFileName())
 	}
 
 	// At this point, the shim knows that the runtime has successfully created a
 	// container. The shim's API can be used to interact with the container now.
-	cfg.SetContainerStatus(&config.ContainerStatus{PID: containerPid})
+	s.setContainerStatus(&ContainerStatus{PID: containerPid})
 
 	// Wait for the termination of the container process.
 	var wstatus syscall.WaitStatus
@@ -91,12 +89,12 @@ func createContainer(cfg *config.ShimConfig, logger *logrus.Entry, cmd *cobra.Co
 		logger.WithError(err).Fatal("wait4() failed")
 	}
 
-	cfg.SetContainerStatus(&config.ContainerStatus{
+	s.setContainerStatus(&ContainerStatus{
 		PID:        containerPid,
 		WaitStatus: &wstatus,
 	})
 
 	logger.WithFields(logrus.Fields{
-		"exitStatus": cfg.ContainerStatus().ExitStatus(),
+		"exitStatus": s.containerStatus.ExitStatus(),
 	}).Info("container exited")
 }
