@@ -5,8 +5,8 @@ MAKEFLAGS += --warn-undefined-variables
 # Disable implicit rules.
 .SUFFIXES:
 
-git_hash  := $(shell git rev-parse --short HEAD)
-bin_dir   := bin
+git_hash := $(shell git rev-parse --short HEAD)
+bin_dir  := $(CURDIR)/bin
 
 go_build_flags := -ldflags "-X github.com/willdurand/containers/internal/version.GitCommit=$(git_hash)"
 
@@ -14,14 +14,19 @@ all: ## build all binaries
 all: yacr yacs
 .PHONY: all
 
+install: ## install the binaries on the system (using symlinks)
+	ln -fs $(bin_dir)/yacr /usr/local/bin/yacr
+	ln -fs $(bin_dir)/yacs /usr/local/bin/yacs
+.PHONY: install
+
 yacr: ## build the container runtime
 	@mkdir -p $(bin_dir)
-	cd cmd/$@ && go build $(go_build_flags) -o "../../$(bin_dir)/$@"
+	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
 .PHONY: yacr
 
 yacs: ## build the container shim
 	@mkdir -p $(bin_dir)
-	cd cmd/$@ && go build $(go_build_flags) -o "../../$(bin_dir)/$@"
+	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
 .PHONY: yacs
 
 alpine_bundle: ## create a rootless bundle (for testing purposes)
