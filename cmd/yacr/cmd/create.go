@@ -16,7 +16,7 @@ import (
 	"github.com/willdurand/containers/cmd/yacr/ipc"
 	"golang.org/x/sys/unix"
 
-	"github.com/opencontainers/runtime-spec/specs-go"
+	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +57,7 @@ func create(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("create: %w", err)
 	}
 
-	// TODO: make sure that specs.Version is supported
+	// TODO: make sure that runtimespec.Version is supported
 
 	// TODO: error when there is no linux configuration
 
@@ -107,17 +107,17 @@ func create(cmd *cobra.Command, args []string) error {
 	var cloneFlags uintptr
 	for _, ns := range container.Spec().Linux.Namespaces {
 		switch ns.Type {
-		case specs.UTSNamespace:
+		case runtimespec.UTSNamespace:
 			cloneFlags |= syscall.CLONE_NEWUTS
-		case specs.PIDNamespace:
+		case runtimespec.PIDNamespace:
 			cloneFlags |= syscall.CLONE_NEWPID
-		case specs.MountNamespace:
+		case runtimespec.MountNamespace:
 			cloneFlags |= syscall.CLONE_NEWNS
-		case specs.UserNamespace:
+		case runtimespec.UserNamespace:
 			cloneFlags |= syscall.CLONE_NEWUSER
-		case specs.NetworkNamespace:
+		case runtimespec.NetworkNamespace:
 			cloneFlags |= syscall.CLONE_NEWNET
-		case specs.IPCNamespace:
+		case runtimespec.IPCNamespace:
 			cloneFlags |= syscall.CLONE_NEWIPC
 		default:
 			return fmt.Errorf("create: unsupported namespace: %s", ns.Type)

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os/exec"
 
-	"github.com/opencontainers/runtime-spec/specs-go"
+	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/constants"
 )
@@ -180,13 +180,13 @@ func (s *Shim) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []st
 // writer `w` and `nil` is returned.
 //
 // The container state is read from the OCI runtime (with the `state` command).
-func (s *Shim) getContainerStateOrHttpError(w http.ResponseWriter) *specs.State {
+func (s *Shim) getContainerStateOrHttpError(w http.ResponseWriter) *runtimespec.State {
 	output, err := s.executeRuntimeOrHttpError(w, []string{"state", s.ContainerID()})
 	if err != nil {
 		return nil
 	}
 
-	var state specs.State
+	var state runtimespec.State
 	if json.Unmarshal(output, &state); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return nil

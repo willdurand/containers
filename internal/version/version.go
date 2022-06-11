@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/opencontainers/runtime-spec/specs-go"
+	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var (
@@ -22,7 +22,7 @@ func Version() string {
 	return strings.Join([]string{
 		VersionString,
 		"commit: " + GitCommit,
-		"spec: " + specs.Version,
+		"spec: " + runtimespec.Version,
 		"go: " + runtime.Version(),
 	}, "\n")
 }

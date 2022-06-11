@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/opencontainers/runtime-spec/specs-go"
+	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/cmd/yacr/ipc"
 	"github.com/willdurand/containers/internal/constants"
@@ -21,9 +21,9 @@ import (
 type Container interface {
 	ID() string
 
-	Spec() specs.Spec
+	Spec() runtimespec.Spec
 
-	State() specs.State
+	State() runtimespec.State
 
 	CreatedAt() time.Time
 
@@ -37,8 +37,8 @@ type Container interface {
 }
 
 type BaseContainer struct {
-	spec      specs.Spec
-	state     specs.State
+	spec      runtimespec.Spec
+	state     runtimespec.State
 	createdAt time.Time
 	rootDir   string
 	stateFile string
@@ -72,8 +72,8 @@ func New(rootDir string, id string, bundle string) (*ContainerState, error) {
 
 	baseContainer := BaseContainer{
 		spec: spec,
-		state: specs.State{
-			Version: specs.Version,
+		state: runtimespec.State{
+			Version: runtimespec.Version,
 			ID:      id,
 			Status:  constants.StateCreating,
 			Bundle:  bundle,
@@ -149,11 +149,11 @@ func (c *BaseContainer) ID() string {
 	return c.state.ID
 }
 
-func (c *BaseContainer) Spec() specs.Spec {
+func (c *BaseContainer) Spec() runtimespec.Spec {
 	return c.spec
 }
 
-func (c *BaseContainer) State() specs.State {
+func (c *BaseContainer) State() runtimespec.State {
 	return c.state
 }
 
@@ -196,7 +196,7 @@ func (c *BaseContainer) ExecuteHooks(name string) error {
 		return nil
 	}
 
-	hooks := map[string][]specs.Hook{
+	hooks := map[string][]runtimespec.Hook{
 		"Prestart":        c.spec.Hooks.Prestart,
 		"CreateRuntime":   c.spec.Hooks.CreateRuntime,
 		"CreateContainer": c.spec.Hooks.CreateContainer,
@@ -323,8 +323,8 @@ func (c *ContainerState) saveContainerState() error {
 	return nil
 }
 
-func loadBundleConfig(bundle string) (specs.Spec, error) {
-	var spec specs.Spec
+func loadBundleConfig(bundle string) (runtimespec.Spec, error) {
+	var spec runtimespec.Spec
 	data, err := ioutil.ReadFile(filepath.Join(bundle, "config.json"))
 	if err != nil {
 		return spec, fmt.Errorf("failed to read config.json: %w", err)
