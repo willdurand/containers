@@ -15,7 +15,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/cmd/yacr/ipc"
-	"github.com/willdurand/containers/pkg/constants"
+	"github.com/willdurand/containers/internal/constants"
 )
 
 type Container interface {

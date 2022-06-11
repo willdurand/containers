@@ -1,6 +1,6 @@
 package cmd
 
-import "github.com/willdurand/containers/pkg/cli"
+import "github.com/willdurand/containers/internal/cli"
 
 const (
 	programName string = "yacr"

@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/cmd/yacr/containers"
 	"github.com/willdurand/containers/cmd/yacr/ipc"
-	"github.com/willdurand/containers/pkg/constants"
+	"github.com/willdurand/containers/internal/constants"
 )
 
 func init() {

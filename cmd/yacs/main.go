@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/cmd/yacs/shim"
-	"github.com/willdurand/containers/pkg/cli"
+	"github.com/willdurand/containers/internal/cli"
 	"golang.org/x/sys/unix"
 )
 
