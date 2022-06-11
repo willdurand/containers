@@ -13,7 +13,6 @@ import (
 	"time"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
-
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/constants"
 	"github.com/willdurand/containers/internal/yacr/ipc"
