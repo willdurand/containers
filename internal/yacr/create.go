@@ -67,27 +67,23 @@ func Create(rootDir string, opts CreateOpts) error {
 
 	// Prepare a command to re-execute itself in order to create the container
 	// process.
-	var args []string
+	containerArgs := []string{
+		"create", "container", opts.ID,
+		"--root", rootDir,
+		"--bundle", opts.Bundle,
+	}
 	if opts.LogFile != "" {
-		args = append([]string{"--log", opts.LogFile}, args...)
+		containerArgs = append([]string{"--log", opts.LogFile}, containerArgs...)
 	}
-
 	if opts.LogFormat != "" {
-		args = append([]string{"--log-format", opts.LogFormat}, args...)
+		containerArgs = append([]string{"--log-format", opts.LogFormat}, containerArgs...)
 	}
-
 	if opts.Debug {
-		args = append([]string{"--debug"}, args...)
+		containerArgs = append([]string{"--debug"}, containerArgs...)
 	}
-
 	if opts.NoPivot {
-		args = append([]string{"--no-pivot"}, args...)
+		containerArgs = append([]string{"--no-pivot"}, containerArgs...)
 	}
-
-	containerArgs := append(
-		[]string{"create", "container", "--root", rootDir},
-		args...,
-	)
 
 	var cloneFlags uintptr
 	for _, ns := range container.Spec().Linux.Namespaces {

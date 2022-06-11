@@ -29,6 +29,7 @@ func init() {
 		Hidden:       true,
 		Args:         cobra.ExactArgs(1),
 	}
+	containerCmd.Flags().Bool("no-pivot", false, "do not use pivot root to jail process inside rootfs")
 	cmd.AddCommand(containerCmd)
 }
 
@@ -55,6 +56,23 @@ func create(cmd *cobra.Command, args []string) error {
 
 	if err := yacr.Create(rootDir, opts); err != nil {
 		return fmt.Errorf("create: %w", err)
+	}
+
+	return nil
+}
+
+func createContainer(cmd *cobra.Command, args []string) error {
+	rootDir, _ := cmd.Flags().GetString("root")
+	bundle, _ := cmd.Flags().GetString("bundle")
+	noPivot, _ := cmd.Flags().GetBool("no-pivot")
+
+	opts := yacr.CreateOpts{
+		ID:      args[0],
+		Bundle:  bundle,
+		NoPivot: noPivot,
+	}
+	if err := yacr.CreateContainer(rootDir, opts); err != nil {
+		return fmt.Errorf("create container: %w", err)
 	}
 
 	return nil
