@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"text/tabwriter"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/internal/yacr/container"
+	"github.com/willdurand/containers/internal/yacr"
 )
 
 func init() {
@@ -21,42 +19,23 @@ func init() {
 			SilenceUsage: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
 				rootDir, _ := cmd.Flags().GetString("root")
-				files, err := ioutil.ReadDir(rootDir)
+
+				list, err := yacr.List(rootDir)
 				if err != nil {
-					return fmt.Errorf("list: failed to read root directory: %w", err)
+					return fmt.Errorf("list: %w", err)
 				}
 
 				w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
 				fmt.Fprint(w, "ID\tSTATUS\tCREATED\tPID\tBUNDLE\n")
 
-				for _, f := range files {
-					if !f.IsDir() {
-						continue
-					}
-
-					container, err := container.Load(rootDir, f.Name())
-					if err != nil {
-						logrus.WithFields(logrus.Fields{
-							"id":    f.Name(),
-							"error": err,
-						}).Debug("failed to load container")
-						continue
-					}
-
-					state := container.State()
-
-					pid := state.Pid
-					if container.IsStopped() {
-						pid = 0
-					}
-
+				for _, container := range list {
 					fmt.Fprintf(
 						w, "%s\t%s\t%s\t%d\t%s\n",
-						container.ID(),
-						state.Status,
-						container.CreatedAt().Format(time.RFC3339),
-						pid,
-						state.Bundle,
+						container.ID,
+						container.Status,
+						container.CreatedAt.Format(time.RFC3339),
+						container.PID,
+						container.BundlePath,
 					)
 				}
 
