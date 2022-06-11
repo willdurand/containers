@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -16,7 +17,11 @@ func init() {
 			RunE: func(cmd *cobra.Command, args []string) error {
 				rootDir, _ := cmd.Flags().GetString("root")
 
-				return yacr.WriteState(rootDir, args[0], os.Stdout)
+				if err := yacr.WriteState(rootDir, args[0], os.Stdout); err != nil {
+					return fmt.Errorf("state: %w", err)
+				}
+
+				return nil
 			},
 			Args: cobra.ExactArgs(1),
 		},
