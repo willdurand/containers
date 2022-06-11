@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd/yacr/containers"
-	"github.com/willdurand/containers/cmd/yacr/ipc"
 	"github.com/willdurand/containers/internal/constants"
+	"github.com/willdurand/containers/internal/yacr/container"
+	"github.com/willdurand/containers/internal/yacr/ipc"
 )
 
 func init() {
@@ -19,7 +19,7 @@ func init() {
 			SilenceUsage: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
 				rootDir, _ := cmd.Flags().GetString("root")
-				container, err := containers.LoadWithBundleConfig(rootDir, args[0])
+				container, err := container.LoadWithBundleConfig(rootDir, args[0])
 				if err != nil {
 					return fmt.Errorf("start: %w", err)
 				}

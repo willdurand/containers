@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"errors"
@@ -12,14 +12,14 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd/yacr/containers"
-	"github.com/willdurand/containers/cmd/yacr/ipc"
+	"github.com/willdurand/containers/internal/yacr/container"
+	"github.com/willdurand/containers/internal/yacr/ipc"
 	"golang.org/x/sys/unix"
 )
 
-func container(cmd *cobra.Command, args []string) error {
+func createContainer(cmd *cobra.Command, args []string) error {
 	rootDir, _ := cmd.Flags().GetString("root")
-	container, err := containers.LoadFromContainer(rootDir, args[0])
+	container, err := container.LoadFromContainer(rootDir, args[0])
 	if err != nil {
 		return fmt.Errorf("container: %w", err)
 	}

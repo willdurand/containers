@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd/yacr/containers"
+	"github.com/willdurand/containers/internal/yacr/container"
 )
 
 func init() {
@@ -24,7 +24,7 @@ func init() {
 			}
 
 			rootDir, _ := cmd.Flags().GetString("root")
-			container, err := containers.LoadWithBundleConfig(rootDir, id)
+			container, err := container.LoadWithBundleConfig(rootDir, id)
 			if err != nil {
 				return fmt.Errorf("kill: %w", err)
 			}

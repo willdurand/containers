@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"errors"
@@ -11,13 +11,12 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
-	"github.com/sirupsen/logrus"
-	"github.com/willdurand/containers/cmd/yacr/containers"
-	"github.com/willdurand/containers/cmd/yacr/ipc"
-	"golang.org/x/sys/unix"
-
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/yacr/container"
+	"github.com/willdurand/containers/internal/yacr/ipc"
+	"golang.org/x/sys/unix"
 )
 
 func init() {
@@ -38,7 +37,7 @@ func init() {
 	containerCmd := &cobra.Command{
 		Use:          "container <id>",
 		SilenceUsage: true,
-		RunE:         container,
+		RunE:         createContainer,
 		Hidden:       true,
 		Args:         cobra.ExactArgs(1),
 	}
@@ -52,7 +51,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	rootDir, _ := cmd.Flags().GetString("root")
-	container, err := containers.New(rootDir, args[0], bundle)
+	container, err := container.New(rootDir, args[0], bundle)
 	if err != nil {
 		return fmt.Errorf("create: %w", err)
 	}

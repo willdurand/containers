@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd/yacr/containers"
+	"github.com/willdurand/containers/internal/yacr/container"
 )
 
 func init() {
@@ -34,7 +34,7 @@ func init() {
 						continue
 					}
 
-					container, err := containers.Load(rootDir, f.Name())
+					container, err := container.Load(rootDir, f.Name())
 					if err != nil {
 						logrus.WithFields(logrus.Fields{
 							"id":    f.Name(),
