@@ -6,8 +6,8 @@ import (
 	"github.com/sevlyar/go-daemon"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd/yacs/shim"
 	"github.com/willdurand/containers/internal/cli"
+	"github.com/willdurand/containers/internal/yacs"
 	"golang.org/x/sys/unix"
 )
 
@@ -40,13 +40,13 @@ func main() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	s, err := shim.NewFromFlags(cmd.Flags())
+	shim, err := yacs.NewShimFromFlags(cmd.Flags())
 	if err != nil {
 		return err
 	}
 
 	ctx := &daemon.Context{
-		PidFileName: s.PidFileName(),
+		PidFileName: shim.PidFileName(),
 		PidFilePerm: 0o644,
 	}
 
@@ -55,13 +55,13 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create daemon: %w", err)
 	}
 	if parent != nil {
-		fmt.Println(s.SocketAddress())
+		fmt.Println(shim.SocketAddress())
 		return nil
 	}
 	defer ctx.Release()
 
 	logger := logrus.WithFields(logrus.Fields{
-		"id":  s.ContainerID(),
+		"id":  shim.ContainerID(),
 		"cmd": "shim",
 	})
 
@@ -76,14 +76,14 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// Call the OCI runtime to create the container.
-	go s.CreateContainer(logger)
+	go shim.CreateContainer(logger)
 
 	// Create the HTTP API to be able to interact with the shim.
-	go s.CreateHttpServer(logger)
+	go shim.CreateHttpServer(logger)
 
-	<-s.Exit
+	<-shim.Exit
 
-	s.Destroy()
+	shim.Destroy()
 	logger.Info("stopped")
 
 	return nil

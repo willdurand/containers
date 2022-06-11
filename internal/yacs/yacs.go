@@ -1,4 +1,4 @@
-package shim
+package yacs
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-type Shim struct {
+type Yacs struct {
 	rootDir         string
 	debug           bool
 	bundle          string
@@ -22,9 +22,9 @@ type Shim struct {
 	Exit            chan struct{}
 }
 
-// NewFromFlags creates a new shim configuration from a set of (command) flags.
-// This function also verifies that required flags have non-empty values.
-func NewFromFlags(flags *pflag.FlagSet) (*Shim, error) {
+// NewShimFromFlags creates a new shim from a set of (command) flags. This
+// function also verifies that required flags have non-empty valuey.
+func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 	for _, param := range []string{
 		"bundle",
 		"container-id",
@@ -43,11 +43,10 @@ func NewFromFlags(flags *pflag.FlagSet) (*Shim, error) {
 	exitCommand, _ := flags.GetString("exit-command")
 	exitCommandArgs, _ := flags.GetStringArray("exit-command-arg")
 
-	return newShimConfig(rootDir, bundle, containerId, runtime, exitCommand, exitCommandArgs, debug)
+	return newYacsShim(rootDir, bundle, containerId, runtime, exitCommand, exitCommandArgs, debug)
 }
 
-// newShimConfig creates a new shim configuration.
-func newShimConfig(rootDir, bundle, containerId, runtime string, exitProgram string, exitCommandArgs []string, debug bool) (*Shim, error) {
+func newYacsShim(rootDir, bundle, containerId, runtime string, exitProgram string, exitCommandArgs []string, debug bool) (*Yacs, error) {
 	containerDir := filepath.Join(rootDir, containerId)
 	if err := os.MkdirAll(containerDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create container directory: %w", err)
@@ -57,7 +56,7 @@ func newShimConfig(rootDir, bundle, containerId, runtime string, exitProgram str
 	if err != nil {
 		return nil, fmt.Errorf("runtime '%s' not found", runtime)
 	}
-	return &Shim{
+	return &Yacs{
 		rootDir:         containerDir,
 		debug:           debug,
 		bundle:          bundle,
@@ -72,39 +71,39 @@ func newShimConfig(rootDir, bundle, containerId, runtime string, exitProgram str
 }
 
 // ContainerID returns the container's ID.
-func (s *Shim) ContainerID() string {
-	return s.containerId
+func (y *Yacs) ContainerID() string {
+	return y.containerId
 }
 
 // PidFileName returns the path to the file that contains the PID of the shim.
-func (s *Shim) PidFileName() string {
-	return filepath.Join(s.rootDir, "shim.pid")
+func (y *Yacs) PidFileName() string {
+	return filepath.Join(y.rootDir, "shim.pid")
 }
 
 // SocketAddress returns the path to the unix socket used to communicate with
 // the shim.
-func (s *Shim) SocketAddress() string {
-	return filepath.Join(s.rootDir, "shim.sock")
+func (y *Yacs) SocketAddress() string {
+	return filepath.Join(y.rootDir, "shim.sock")
 }
 
 // Destroy removes the directory (and all the files) created by the shim.
-func (s *Shim) Destroy() {
-	os.RemoveAll(s.rootDir)
+func (y *Yacs) Destroy() {
+	os.RemoveAll(y.rootDir)
 }
 
 // setContainerStatus sets an instance of `ContainerStatus` to the shim
 // configuration.
-func (s *Shim) setContainerStatus(status *ContainerStatus) {
-	s.containerStatus = status
+func (y *Yacs) setContainerStatus(status *ContainerStatus) {
+	y.containerStatus = status
 }
 
-// runtimeArgs returns a list of common OCI runtime arguments.
-func (s *Shim) runtimeArgs() []string {
+// runtimeArgs returns a list of common OCI runtime argumenty.
+func (y *Yacs) runtimeArgs() []string {
 	args := []string{
-		"--log", filepath.Join(s.rootDir, fmt.Sprintf("%s.log", s.runtime)),
+		"--log", filepath.Join(y.rootDir, fmt.Sprintf("%s.log", y.runtime)),
 		"--log-format", "json",
 	}
-	if s.debug {
+	if y.debug {
 		args = append(args, "--debug")
 	}
 
@@ -113,19 +112,19 @@ func (s *Shim) runtimeArgs() []string {
 
 // stdoutFileName is the path to the file where the container's `stdout` logs
 // are written.
-func (s *Shim) stdoutFileName() string {
-	return filepath.Join(s.rootDir, "stdout")
+func (y *Yacs) stdoutFileName() string {
+	return filepath.Join(y.rootDir, "stdout")
 }
 
 // stderrFileName is the path to the file where the container's `stderr` logs
 // are written.
-func (s *Shim) stderrFileName() string {
-	return filepath.Join(s.rootDir, "stderr")
+func (y *Yacs) stderrFileName() string {
+	return filepath.Join(y.rootDir, "stderr")
 }
 
 // containerPidFileName returns the path to the file that contains the PID of
 // the container. Usually, this path should be passed to the OCI runtime with a
 // CLI flag (`--pid-file`).
-func (s *Shim) containerPidFileName() string {
-	return filepath.Join(s.rootDir, "container.pid")
+func (y *Yacs) containerPidFileName() string {
+	return filepath.Join(y.rootDir, "container.pid")
 }

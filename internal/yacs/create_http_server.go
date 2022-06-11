@@ -1,4 +1,4 @@
-package shim
+package yacs
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ import (
 
 // CreateHttpServer creates a HTTP server to expose an API to interact with the
 // shim.
-func (s *Shim) CreateHttpServer(logger *logrus.Entry) {
+func (y *Yacs) CreateHttpServer(logger *logrus.Entry) {
 	server := http.Server{}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -29,10 +29,10 @@ func (s *Shim) CreateHttpServer(logger *logrus.Entry) {
 
 		switch r.Method {
 		case "GET":
-			s.sendShimStateOrHttpError(w)
+			y.sendShimStateOrHttpError(w)
 			return
 		case "POST":
-			s.processCommand(w, r)
+			y.processCommand(w, r)
 			return
 		case "DELETE":
 			// Shutdown the shim.
@@ -47,14 +47,14 @@ func (s *Shim) CreateHttpServer(logger *logrus.Entry) {
 	})
 
 	http.HandleFunc("/stdout", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, s.stdoutFileName())
+		http.ServeFile(w, r, y.stdoutFileName())
 	})
 
 	http.HandleFunc("/stderr", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, s.stderrFileName())
+		http.ServeFile(w, r, y.stderrFileName())
 	})
 
-	listener, err := net.Listen("unix", s.SocketAddress())
+	listener, err := net.Listen("unix", y.SocketAddress())
 	if err != nil {
 		logger.WithError(err).Panic("failed to listen to socket")
 	}
@@ -68,11 +68,11 @@ func (s *Shim) CreateHttpServer(logger *logrus.Entry) {
 	<-ctx.Done()
 
 	server.Shutdown(ctx)
-	close(s.Exit)
+	close(y.Exit)
 }
 
-func (s *Shim) processCommand(w http.ResponseWriter, r *http.Request) {
-	if s.containerStatus == nil {
+func (y *Yacs) processCommand(w http.ResponseWriter, r *http.Request) {
+	if y.containerStatus == nil {
 		http.Error(w, "container not yet created", http.StatusNotFound)
 		return
 	}
@@ -80,32 +80,32 @@ func (s *Shim) processCommand(w http.ResponseWriter, r *http.Request) {
 	cmd := r.FormValue("cmd")
 	switch cmd {
 	case "start":
-		state := s.getContainerStateOrHttpError(w)
+		state := y.getContainerStateOrHttpError(w)
 		if state == nil {
 			return
 		}
 
 		if state.Status != constants.StateCreated {
-			msg := fmt.Sprintf("container '%s' is %s", s.ContainerID(), state.Status)
+			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID(), state.Status)
 			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
 
-		_, err := s.executeRuntimeOrHttpError(w, []string{"start", s.ContainerID()})
+		_, err := y.executeRuntimeOrHttpError(w, []string{"start", y.ContainerID()})
 		if err != nil {
 			return
 		}
 
-		s.sendShimStateOrHttpError(w)
+		y.sendShimStateOrHttpError(w)
 
 	case "kill":
-		state := s.getContainerStateOrHttpError(w)
+		state := y.getContainerStateOrHttpError(w)
 		if state == nil {
 			return
 		}
 
 		if state.Status != constants.StateRunning {
-			msg := fmt.Sprintf("container '%s' is %s", s.ContainerID(), state.Status)
+			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID(), state.Status)
 			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
@@ -116,26 +116,26 @@ func (s *Shim) processCommand(w http.ResponseWriter, r *http.Request) {
 			signal = sig
 		}
 
-		_, err := s.executeRuntimeOrHttpError(w, []string{"kill", s.ContainerID(), signal})
+		_, err := y.executeRuntimeOrHttpError(w, []string{"kill", y.ContainerID(), signal})
 		if err != nil {
 			return
 		}
 
-		s.sendShimStateOrHttpError(w)
+		y.sendShimStateOrHttpError(w)
 
 	case "delete":
-		state := s.getContainerStateOrHttpError(w)
+		state := y.getContainerStateOrHttpError(w)
 		if state == nil {
 			return
 		}
 
 		if state.Status != constants.StateStopped {
-			msg := fmt.Sprintf("container '%s' is %s", s.ContainerID(), state.Status)
+			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID(), state.Status)
 			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
 
-		_, err := s.executeRuntimeOrHttpError(w, []string{"delete", s.ContainerID()})
+		_, err := y.executeRuntimeOrHttpError(w, []string{"delete", y.ContainerID()})
 		if err != nil {
 			return
 		}
@@ -152,18 +152,18 @@ func (s *Shim) processCommand(w http.ResponseWriter, r *http.Request) {
 // passed in the `runtimeArgs` parameter. When something goes wrong, an HTTP
 // error is written to the response write `w` and the error is returned to the
 // caller.
-func (s *Shim) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []string) ([]byte, error) {
+func (y *Yacs) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []string) ([]byte, error) {
 	output, err := exec.Command(
-		s.runtimePath,
+		y.runtimePath,
 		// Add default runtime args.
-		append(s.runtimeArgs(), runtimeArgs...)...,
+		append(y.runtimeArgs(), runtimeArgs...)...,
 	).Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// HACK: we should probably not parse the error message like that...
 			// Note that this should work with `runc` too, though.
 			if bytes.Contains(exitError.Stderr, []byte("does not exist")) {
-				msg := fmt.Sprintf("container '%s' does not exist", s.ContainerID())
+				msg := fmt.Sprintf("container '%s' does not exist", y.ContainerID())
 				http.Error(w, msg, http.StatusNotFound)
 				return output, err
 			}
@@ -180,8 +180,8 @@ func (s *Shim) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []st
 // writer `w` and `nil` is returned.
 //
 // The container state is read from the OCI runtime (with the `state` command).
-func (s *Shim) getContainerStateOrHttpError(w http.ResponseWriter) *runtimespec.State {
-	output, err := s.executeRuntimeOrHttpError(w, []string{"state", s.ContainerID()})
+func (y *Yacs) getContainerStateOrHttpError(w http.ResponseWriter) *runtimespec.State {
+	output, err := y.executeRuntimeOrHttpError(w, []string{"state", y.ContainerID()})
 	if err != nil {
 		return nil
 	}
@@ -197,17 +197,17 @@ func (s *Shim) getContainerStateOrHttpError(w http.ResponseWriter) *runtimespec.
 
 // sendShimStateOrHttpError sends a HTTP response with the shim state, unless
 // there is an error in which case the error is returned to the client.
-func (s *Shim) sendShimStateOrHttpError(w http.ResponseWriter) {
-	state := s.getContainerStateOrHttpError(w)
+func (y *Yacs) sendShimStateOrHttpError(w http.ResponseWriter) {
+	state := y.getContainerStateOrHttpError(w)
 	if state == nil {
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":      s.ContainerID(),
+		"id":      y.ContainerID(),
 		"state":   state,
-		"runtime": s.runtime,
-		"status":  s.containerStatus,
+		"runtime": y.runtime,
+		"status":  y.containerStatus,
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
