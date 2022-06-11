@@ -7,7 +7,7 @@ import (
 	"github.com/willdurand/containers/internal/yacr/container"
 )
 
-func WriteState(rootDir, containerId string, w io.Writer) error {
+func State(rootDir, containerId string, w io.Writer) error {
 	container, err := container.LoadWithBundleConfig(rootDir, containerId)
 	if err != nil {
 		return err

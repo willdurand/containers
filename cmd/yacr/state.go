@@ -17,7 +17,7 @@ func init() {
 			RunE: func(cmd *cobra.Command, args []string) error {
 				rootDir, _ := cmd.Flags().GetString("root")
 
-				if err := yacr.WriteState(rootDir, args[0], os.Stdout); err != nil {
+				if err := yacr.State(rootDir, args[0], os.Stdout); err != nil {
 					return fmt.Errorf("state: %w", err)
 				}
 
