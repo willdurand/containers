@@ -1,4 +1,4 @@
-package containers
+package container
 
 import (
 	"bytes"
@@ -14,27 +14,9 @@ import (
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"github.com/willdurand/containers/cmd/yacr/ipc"
 	"github.com/willdurand/containers/internal/constants"
+	"github.com/willdurand/containers/internal/yacr/ipc"
 )
-
-type Container interface {
-	ID() string
-
-	Spec() runtimespec.Spec
-
-	State() runtimespec.State
-
-	CreatedAt() time.Time
-
-	IsCreated() bool
-
-	IsRunning() bool
-
-	IsStopped() bool
-
-	Rootfs() string
-}
 
 type BaseContainer struct {
 	spec      runtimespec.Spec

@@ -1,12 +1,11 @@
-package cmd
+package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/willdurand/containers/cmd/yacr/containers"
+	"github.com/willdurand/containers/internal/yacr"
 )
 
 func init() {
@@ -17,12 +16,8 @@ func init() {
 			SilenceUsage: true,
 			RunE: func(cmd *cobra.Command, args []string) error {
 				rootDir, _ := cmd.Flags().GetString("root")
-				container, err := containers.LoadWithBundleConfig(rootDir, args[0])
-				if err != nil {
-					return fmt.Errorf("state: %w", err)
-				}
 
-				if err := json.NewEncoder(os.Stdout).Encode(container.State()); err != nil {
+				if err := yacr.State(rootDir, args[0], os.Stdout); err != nil {
 					return fmt.Errorf("state: %w", err)
 				}
 

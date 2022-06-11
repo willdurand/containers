@@ -48,7 +48,7 @@ Edit the `config.json` file to set `process.terminal` to `false` and update the 
 Now we can use `yacr create` to create a new container. We need to pass a container ID and the path to the bundle we made previously. In order to create a "rootless container", we need to specify a root directory (i.e. the location used by `yacr` to write its data) that is accessible by the current user. If you don't have the `XDG_RUNTIME_DIR` environment variable configured on your system (see: [XDG Base Directory][]), you'll have to specify the root directory (e.g. `--root /tmp/yacr`).
 
 ```
-$ yacr create test-id --bundle .
+$ yacr create test-id --bundle /tmp/alpine-bundle
 ERRO[0000] container: failed to mount filesystem         destination=/tmp/alpine-bundle/rootfs/sys/fs/cgroup error="operation not permitted" id=test-id options="[nosuid noexec nodev relatime ro]" source=cgroup type=cgroup
 INFO[0000] create: ok                                    id=test-id
 ```
