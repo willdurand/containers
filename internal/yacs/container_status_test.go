@@ -1,4 +1,4 @@
-package shim
+package yacs
 
 import (
 	"encoding/json"
