@@ -30,6 +30,11 @@ func init() {
 	shimCmd.MarkFlagRequired("bundle")
 	shimCmd.Flags().String("container-id", "", "container id")
 	shimCmd.MarkFlagRequired("container-id")
+	shimCmd.Flags().String(
+		"container-log-file",
+		"",
+		`path to the container log file (default: "container.log" in the container base directory)`,
+	)
 	shimCmd.Flags().String("runtime", "yacr", "container runtime to use")
 	shimCmd.Flags().String("exit-command", "", "path to the exit command to execute when the container has exited")
 	shimCmd.Flags().StringArray("exit-command-arg", []string{}, "argument to pass to the execute command")
@@ -61,7 +66,7 @@ func run(cmd *cobra.Command, args []string) error {
 	defer ctx.Release()
 
 	logger := logrus.WithFields(logrus.Fields{
-		"id":  shim.ContainerID(),
+		"id":  shim.ContainerID,
 		"cmd": "shim",
 	})
 

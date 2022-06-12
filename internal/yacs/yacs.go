@@ -10,16 +10,17 @@ import (
 )
 
 type Yacs struct {
-	rootDir         string
-	debug           bool
-	bundle          string
-	containerId     string
-	containerStatus *ContainerStatus
-	runtime         string
-	runtimePath     string
-	exitCommand     string
-	exitCommandArgs []string
-	Exit            chan struct{}
+	baseDir          string
+	debug            bool
+	bundle           string
+	ContainerID      string
+	ContainerLogFile string
+	containerStatus  *ContainerStatus
+	runtime          string
+	runtimePath      string
+	exitCommand      string
+	exitCommandArgs  []string
+	Exit             chan struct{}
 }
 
 // NewShimFromFlags creates a new shim from a set of (command) flags. This
@@ -38,17 +39,14 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 	rootDir, _ := flags.GetString("root")
 	bundle, _ := flags.GetString("bundle")
 	containerId, _ := flags.GetString("container-id")
+	containerLogFile, _ := flags.GetString("container-log-file")
 	runtime, _ := flags.GetString("runtime")
 	debug, _ := flags.GetBool("debug")
 	exitCommand, _ := flags.GetString("exit-command")
 	exitCommandArgs, _ := flags.GetStringArray("exit-command-arg")
 
-	return newYacsShim(rootDir, bundle, containerId, runtime, exitCommand, exitCommandArgs, debug)
-}
-
-func newYacsShim(rootDir, bundle, containerId, runtime string, exitProgram string, exitCommandArgs []string, debug bool) (*Yacs, error) {
-	containerDir := filepath.Join(rootDir, containerId)
-	if err := os.MkdirAll(containerDir, 0o755); err != nil {
+	baseDir := filepath.Join(rootDir, containerId)
+	if err := os.MkdirAll(baseDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create container directory: %w", err)
 	}
 
@@ -56,39 +54,40 @@ func newYacsShim(rootDir, bundle, containerId, runtime string, exitProgram strin
 	if err != nil {
 		return nil, fmt.Errorf("runtime '%s' not found", runtime)
 	}
-	return &Yacs{
-		rootDir:         containerDir,
-		debug:           debug,
-		bundle:          bundle,
-		containerId:     containerId,
-		containerStatus: nil,
-		runtime:         runtime,
-		runtimePath:     runtimePath,
-		exitCommand:     exitProgram,
-		exitCommandArgs: exitCommandArgs,
-		Exit:            make(chan struct{}),
-	}, nil
-}
 
-// ContainerID returns the container's ID.
-func (y *Yacs) ContainerID() string {
-	return y.containerId
+	if containerLogFile == "" {
+		containerLogFile = filepath.Join(baseDir, "container.log")
+	}
+
+	return &Yacs{
+		ContainerID:      containerId,
+		ContainerLogFile: containerLogFile,
+		Exit:             make(chan struct{}),
+		baseDir:          baseDir,
+		debug:            debug,
+		bundle:           bundle,
+		containerStatus:  nil,
+		runtime:          runtime,
+		runtimePath:      runtimePath,
+		exitCommand:      exitCommand,
+		exitCommandArgs:  exitCommandArgs,
+	}, nil
 }
 
 // PidFileName returns the path to the file that contains the PID of the shim.
 func (y *Yacs) PidFileName() string {
-	return filepath.Join(y.rootDir, "shim.pid")
+	return filepath.Join(y.baseDir, "shim.pid")
 }
 
 // SocketAddress returns the path to the unix socket used to communicate with
 // the shim.
 func (y *Yacs) SocketAddress() string {
-	return filepath.Join(y.rootDir, "shim.sock")
+	return filepath.Join(y.baseDir, "shim.sock")
 }
 
 // Destroy removes the directory (and all the files) created by the shim.
 func (y *Yacs) Destroy() {
-	os.RemoveAll(y.rootDir)
+	os.RemoveAll(y.baseDir)
 }
 
 // setContainerStatus sets an instance of `ContainerStatus` to the shim
@@ -100,7 +99,7 @@ func (y *Yacs) setContainerStatus(status *ContainerStatus) {
 // runtimeArgs returns a list of common OCI runtime argumenty.
 func (y *Yacs) runtimeArgs() []string {
 	args := []string{
-		"--log", filepath.Join(y.rootDir, fmt.Sprintf("%s.log", y.runtime)),
+		"--log", filepath.Join(y.baseDir, fmt.Sprintf("%s.log", y.runtime)),
 		"--log-format", "json",
 	}
 	if y.debug {
@@ -110,21 +109,9 @@ func (y *Yacs) runtimeArgs() []string {
 	return args
 }
 
-// stdoutFileName is the path to the file where the container's `stdout` logs
-// are written.
-func (y *Yacs) stdoutFileName() string {
-	return filepath.Join(y.rootDir, "stdout")
-}
-
-// stderrFileName is the path to the file where the container's `stderr` logs
-// are written.
-func (y *Yacs) stderrFileName() string {
-	return filepath.Join(y.rootDir, "stderr")
-}
-
 // containerPidFileName returns the path to the file that contains the PID of
 // the container. Usually, this path should be passed to the OCI runtime with a
 // CLI flag (`--pid-file`).
 func (y *Yacs) containerPidFileName() string {
-	return filepath.Join(y.rootDir, "container.pid")
+	return filepath.Join(y.baseDir, "container.pid")
 }

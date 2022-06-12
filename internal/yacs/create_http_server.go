@@ -46,12 +46,8 @@ func (y *Yacs) CreateHttpServer(logger *logrus.Entry) {
 		}
 	})
 
-	http.HandleFunc("/stdout", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, y.stdoutFileName())
-	})
-
-	http.HandleFunc("/stderr", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, y.stderrFileName())
+	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, y.ContainerLogFile)
 	})
 
 	listener, err := net.Listen("unix", y.SocketAddress())
@@ -86,12 +82,12 @@ func (y *Yacs) processCommand(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if state.Status != constants.StateCreated {
-			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID(), state.Status)
+			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID, state.Status)
 			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
 
-		_, err := y.executeRuntimeOrHttpError(w, []string{"start", y.ContainerID()})
+		_, err := y.executeRuntimeOrHttpError(w, []string{"start", y.ContainerID})
 		if err != nil {
 			return
 		}
@@ -105,18 +101,12 @@ func (y *Yacs) processCommand(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if state.Status != constants.StateRunning {
-			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID(), state.Status)
+			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID, state.Status)
 			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
 
-		// TODO: handle string values and maybe use constants...
-		signal := "15"
-		if sig := r.FormValue("signal"); sig != "" {
-			signal = sig
-		}
-
-		_, err := y.executeRuntimeOrHttpError(w, []string{"kill", y.ContainerID(), signal})
+		_, err := y.executeRuntimeOrHttpError(w, []string{"kill", y.ContainerID, r.FormValue("signal")})
 		if err != nil {
 			return
 		}
@@ -130,12 +120,12 @@ func (y *Yacs) processCommand(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if state.Status != constants.StateStopped {
-			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID(), state.Status)
+			msg := fmt.Sprintf("container '%s' is %s", y.ContainerID, state.Status)
 			http.Error(w, msg, http.StatusBadRequest)
 			return
 		}
 
-		_, err := y.executeRuntimeOrHttpError(w, []string{"delete", y.ContainerID()})
+		_, err := y.executeRuntimeOrHttpError(w, []string{"delete", y.ContainerID})
 		if err != nil {
 			return
 		}
@@ -163,7 +153,7 @@ func (y *Yacs) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []st
 			// HACK: we should probably not parse the error message like that...
 			// Note that this should work with `runc` too, though.
 			if bytes.Contains(exitError.Stderr, []byte("does not exist")) {
-				msg := fmt.Sprintf("container '%s' does not exist", y.ContainerID())
+				msg := fmt.Sprintf("container '%s' does not exist", y.ContainerID)
 				http.Error(w, msg, http.StatusNotFound)
 				return output, err
 			}
@@ -181,7 +171,7 @@ func (y *Yacs) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []st
 //
 // The container state is read from the OCI runtime (with the `state` command).
 func (y *Yacs) getContainerStateOrHttpError(w http.ResponseWriter) *runtimespec.State {
-	output, err := y.executeRuntimeOrHttpError(w, []string{"state", y.ContainerID()})
+	output, err := y.executeRuntimeOrHttpError(w, []string{"state", y.ContainerID})
 	if err != nil {
 		return nil
 	}
@@ -204,7 +194,7 @@ func (y *Yacs) sendShimStateOrHttpError(w http.ResponseWriter) {
 	}
 
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"id":      y.ContainerID(),
+		"id":      y.ContainerID,
 		"state":   state,
 		"runtime": y.runtime,
 		"status":  y.containerStatus,

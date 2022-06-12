@@ -1,12 +1,14 @@
 package yacs
 
 import (
+	"bufio"
 	"bytes"
-	"io"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
@@ -20,7 +22,7 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	defer func() {
 		if y.containerStatus == nil {
 			args := append(y.runtimeArgs(), []string{
-				"delete", y.ContainerID(), "--force",
+				"delete", y.ContainerID, "--force",
 			}...)
 			if err := exec.Command(y.runtimePath, args...).Run(); err != nil {
 				logger.WithError(err).Error("failed to force delete container")
@@ -37,25 +39,33 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	defer outRead.Close()
 	defer outWrite.Close()
 
-	// Store the container's stdout to a file.
-	outFile, _ := os.OpenFile(y.stdoutFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
-	go io.Copy(outFile, outRead)
-
-	errRead, errWrite, err := os.Pipe()
+	// We'll store the container's stdout/stderr to a file (using a JSON object
+	// per line). For now we use a single pipe for both streams, which is simpler
+	// but prevents us from knowing the source of each message.
+	logFile, err := os.OpenFile(y.ContainerLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		logger.WithError(err).Panic("failed to create err pipe")
+		logger.WithError(err).Panic("failed to create log file")
 	}
-	defer errRead.Close()
-	defer errWrite.Close()
-
-	// Store the container's stderr to a file.
-	errFile, _ := os.OpenFile(y.stderrFileName(), os.O_CREATE|os.O_WRONLY, 0o644)
-	go io.Copy(errFile, errRead)
+	go func() {
+		scanner := bufio.NewScanner(outRead)
+		for scanner.Scan() {
+			data, err := json.Marshal(map[string]interface{}{
+				"t": time.Now(),
+				"m": scanner.Text(),
+				"s": "",
+			})
+			if err == nil {
+				if _, err := logFile.Write(append(data, '\n')); err != nil {
+					logrus.WithError(err).Warn("failed to write to container log file")
+				}
+			}
+		}
+	}()
 
 	runtimeArgs := append(
 		[]string{y.runtime},
 		append(y.runtimeArgs(), []string{
-			"create", y.ContainerID(),
+			"create", y.ContainerID,
 			"--bundle", y.bundle,
 			"--pid-file", y.containerPidFileName(),
 		}...)...,
@@ -66,7 +76,7 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		Args:   runtimeArgs,
 		Stdin:  nil,
 		Stdout: outWrite,
-		Stderr: errWrite,
+		Stderr: outWrite,
 	}
 
 	logger.WithFields(logrus.Fields{
