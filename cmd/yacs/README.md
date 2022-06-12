@@ -83,7 +83,7 @@ $ ps auxf
 USER         PID    %CPU %MEM    VSZ     RSS TTY       STAT START   TIME COMMAND
 [...]
 gitpod       44458  0.0  0.0     1079856 7260 ?        Ssl  22:01   0:00 yacs --bundle=/tmp/alpine-bundle --container-id=alpine-1
-gitpod       44488  0.0  0.0     1076520 5780 ?        Sl   22:01   0:00  \_ yacr create container --root /home/gitpod/.run/yacr --log-format json --log /home/gitpod/.run/yacs/alpine-1/yacr.log alpine-1
+gitpod       44488  0.0  0.0     1076520 5780 ?        Sl   22:01   0:00  \_ yacr --log-format json --log /home/gitpod/.run/yacs/alpine-1/yacr.log create container alpine-1 --root /home/gitpod/.run/yacr --bundle /tmp/alpine-bundle
 ```
 
 When the command returns, it prints a unix socket address that can be used to query the shim using... HTTP. This isn't great but it is enough to demonstrate how a shim works.
@@ -143,15 +143,14 @@ gitpod       44488  0.0  0.0     1596    4    ?        S    22:01   0:00  \_ sh 
 gitpod       55758  0.0  0.0     1596    4    ?        S    22:02   0:00      \_ sleep 1
 ```
 
-We can query the shim to get the standard output logs:
+We can query the shim to get the container's logs:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/stdout
-[Fri Jun  3 22:03:01 UTC 2022] Hello!
-[Fri Jun  3 22:03:02 UTC 2022] Hello!
-[Fri Jun  3 22:03:03 UTC 2022] Hello!
-[Fri Jun  3 22:03:04 UTC 2022] Hello!
-[Fri Jun  3 22:03:05 UTC 2022] Hello!
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/logs
+{"m":"[Sun Jun 12 11:51:44 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:44.947554491Z"}
+{"m":"[Sun Jun 12 11:51:45 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:45.948493454Z"}
+{"m":"[Sun Jun 12 11:51:46 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:46.949371235Z"}
+{"m":"[Sun Jun 12 11:51:47 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:47.950339068Z"}
 ```
 
 We can also use the shim HTTP API to send a signal to the container:
@@ -172,14 +171,15 @@ $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.
 }
 ```
 
-Weird, it doesn't look like anything as changed. Let's query the `stdout` logs again:
+Weird, it doesn't look like anything as changed. Let's query the logs again:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/stdout
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/logs
 [...]
-[Fri Jun  3 22:03:42 UTC 2022] Hello!
-[Fri Jun  3 22:03:43 UTC 2022] Hello!
-bye, bye
+{"m":"[Sun Jun 12 11:52:36 UTC 2022] Hello!","s":"","t":"2022-06-12T11:52:36.001548972Z"}
+{"m":"[Sun Jun 12 11:52:37 UTC 2022] Hello!","s":"","t":"2022-06-12T11:52:37.002608715Z"}
+{"m":"[Sun Jun 12 11:52:38 UTC 2022] Hello!","s":"","t":"2022-06-12T11:52:38.003658337Z"}
+{"m":"bye, bye","s":"","t":"2022-06-12T11:52:40.005199923Z"}
 ```
 
 The container printed the message of the `signal_handler` defined in the `hello-loop.sh` script so the container should have exited. We can verify by querying the state of the shim again. This time, the container is marked as `stopped` and we have information in the `status` property:
