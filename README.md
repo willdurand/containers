@@ -13,6 +13,8 @@ Want to give it a quick try? [Open this project in Gitpod](https://gitpod.io/#ht
 
 ## Building this project
 
+This project requires a Linux environment. You can use Gitpod as mentioned above or [Vagrant][].
+
 The easiest and quickest way to get started is to build all sub-projects:
 
 ```
@@ -25,3 +27,4 @@ $ sudo make install
 See [`LICENSE.txt`](./LICENSE.txt)
 
 [runtime-spec]: https://github.com/opencontainers/runtime-spec
+[vagrant]: https://www.vagrantup.com/
