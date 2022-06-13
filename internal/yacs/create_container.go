@@ -1,16 +1,14 @@
 package yacs
 
 import (
-	"bufio"
 	"bytes"
-	"encoding/json"
 	"os"
 	"os/exec"
 	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/internal/yacs/log"
 )
 
 // CreateContainer creates a new container when the shim is started.
@@ -32,6 +30,11 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		}
 	}()
 
+	logFile, err := log.NewFile(y.ContainerLogFile)
+	if err != nil {
+		logger.WithError(err).Panic("failed to create log file")
+	}
+
 	outRead, outWrite, err := os.Pipe()
 	if err != nil {
 		logger.WithError(err).Panic("failed to create out pipe")
@@ -39,28 +42,16 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	defer outRead.Close()
 	defer outWrite.Close()
 
-	// We'll store the container's stdout/stderr to a file (using a JSON object
-	// per line). For now we use a single pipe for both streams, which is simpler
-	// but prevents us from knowing the source of each message.
-	logFile, err := os.OpenFile(y.ContainerLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	go logFile.WriteStream(outRead, "stdout")
+
+	errRead, errWrite, err := os.Pipe()
 	if err != nil {
-		logger.WithError(err).Panic("failed to create log file")
+		logger.WithError(err).Panic("failed to create err pipe")
 	}
-	go func() {
-		scanner := bufio.NewScanner(outRead)
-		for scanner.Scan() {
-			data, err := json.Marshal(map[string]interface{}{
-				"t": time.Now(),
-				"m": scanner.Text(),
-				"s": "",
-			})
-			if err == nil {
-				if _, err := logFile.Write(append(data, '\n')); err != nil {
-					logrus.WithError(err).Warn("failed to write to container log file")
-				}
-			}
-		}
-	}()
+	defer errRead.Close()
+	defer errWrite.Close()
+
+	go logFile.WriteStream(errRead, "stderr")
 
 	runtimeArgs := append(
 		[]string{y.runtime},
@@ -76,7 +67,7 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		Args:   runtimeArgs,
 		Stdin:  nil,
 		Stdout: outWrite,
-		Stderr: outWrite,
+		Stderr: errWrite,
 	}
 
 	logger.WithFields(logrus.Fields{

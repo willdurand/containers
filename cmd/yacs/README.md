@@ -48,7 +48,7 @@ $ cat <<'EOF' > /tmp/alpine-bundle/rootfs/hello-loop.sh
 #!/bin/sh
 
 signal_handler() {
-    echo "bye, bye"
+    >&2 echo "bye, bye"
     exit 123
 }
 
@@ -147,11 +147,17 @@ We can query the shim to get the container's logs:
 
 ```
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/logs
-{"m":"[Sun Jun 12 11:51:44 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:44.947554491Z"}
-{"m":"[Sun Jun 12 11:51:45 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:45.948493454Z"}
-{"m":"[Sun Jun 12 11:51:46 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:46.949371235Z"}
-{"m":"[Sun Jun 12 11:51:47 UTC 2022] Hello!","s":"","t":"2022-06-12T11:51:47.950339068Z"}
+{"m":"[Sun Jun 12 11:51:44 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:44.947554491Z"}
+{"m":"[Sun Jun 12 11:51:45 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:45.948493454Z"}
+{"m":"[Sun Jun 12 11:51:46 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:46.949371235Z"}
+{"m":"[Sun Jun 12 11:51:47 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:47.950339068Z"}
 ```
+
+Each entry is a JSON object with the following properties:
+
+- `m`: the message
+- `s`: the stream (either `stdout` or `stderr`)
+- `t`: the timestamp
 
 We can also use the shim HTTP API to send a signal to the container:
 
@@ -176,10 +182,10 @@ Weird, it doesn't look like anything as changed. Let's query the logs again:
 ```
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/logs
 [...]
-{"m":"[Sun Jun 12 11:52:36 UTC 2022] Hello!","s":"","t":"2022-06-12T11:52:36.001548972Z"}
-{"m":"[Sun Jun 12 11:52:37 UTC 2022] Hello!","s":"","t":"2022-06-12T11:52:37.002608715Z"}
-{"m":"[Sun Jun 12 11:52:38 UTC 2022] Hello!","s":"","t":"2022-06-12T11:52:38.003658337Z"}
-{"m":"bye, bye","s":"","t":"2022-06-12T11:52:40.005199923Z"}
+{"m":"[Sun Jun 12 11:52:36 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:52:36.001548972Z"}
+{"m":"[Sun Jun 12 11:52:37 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:52:37.002608715Z"}
+{"m":"[Sun Jun 12 11:52:38 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:52:38.003658337Z"}
+{"m":"bye, bye","s":"stderr","t":"2022-06-12T11:52:40.005199923Z"}
 ```
 
 The container printed the message of the `signal_handler` defined in the `hello-loop.sh` script so the container should have exited. We can verify by querying the state of the shim again. This time, the container is marked as `stopped` and we have information in the `status` property:
