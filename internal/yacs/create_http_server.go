@@ -59,6 +59,8 @@ func (y *Yacs) CreateHttpServer(logger *logrus.Entry) {
 		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			logger.WithError(err).Panic("serve() failed")
 		}
+
+		logger.WithField("address", y.SocketAddress()).Debug("listening")
 	}()
 
 	<-ctx.Done()
@@ -143,11 +145,17 @@ func (y *Yacs) processCommand(w http.ResponseWriter, r *http.Request) {
 // error is written to the response write `w` and the error is returned to the
 // caller.
 func (y *Yacs) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []string) ([]byte, error) {
-	output, err := exec.Command(
-		y.runtimePath,
-		// Add default runtime args.
-		append(y.runtimeArgs(), runtimeArgs...)...,
-	).Output()
+	cmd := exec.Cmd{
+		Path: y.runtimePath,
+		Args: append(
+			[]string{y.runtime},
+			append(y.runtimeArgs(), runtimeArgs...)...,
+		),
+	}
+
+	logrus.WithField("command", cmd.String()).Debug("invoke runtime")
+
+	output, err := cmd.Output()
 	if err != nil {
 		if exitError, ok := err.(*exec.ExitError); ok {
 			// HACK: we should probably not parse the error message like that...

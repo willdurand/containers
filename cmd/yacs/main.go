@@ -35,9 +35,9 @@ func init() {
 		"",
 		`path to the container log file (default: "container.log" in the container base directory)`,
 	)
-	shimCmd.Flags().String("runtime", "yacr", "container runtime to use")
 	shimCmd.Flags().String("exit-command", "", "path to the exit command to execute when the container has exited")
 	shimCmd.Flags().StringArray("exit-command-arg", []string{}, "argument to pass to the execute command")
+	shimCmd.Flags().String("runtime", "yacr", "container runtime to use")
 }
 
 func main() {
@@ -65,19 +65,16 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	defer ctx.Release()
 
-	logger := logrus.WithFields(logrus.Fields{
-		"id":  shim.ContainerID,
-		"cmd": "shim",
-	})
+	logger := logrus.WithField("id", shim.ContainerID)
 
-	// The daemon shim has started. We cannot log information to stdout/stderr
-	// so we are going to use `logger.Fatal()` in case of an error.
-	logger.Info("started")
+	// The daemon shim has started. We cannot log information to stdout/stderr so
+	// we are going to use `logger.Panic()` in case of an error.
+	logger.Info("daemon started")
 
 	// Make this daemon a subreaper so that it "adopts" orphaned descendants,
 	// see: https://man7.org/linux/man-pages/man2/prctl.2.html
 	if err := unix.Prctl(unix.PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0); err != nil {
-		logger.WithError(err).Fatal("prctl() failed")
+		logger.WithError(err).Panic("prctl() failed")
 	}
 
 	// Call the OCI runtime to create the container.

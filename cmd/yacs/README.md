@@ -91,7 +91,7 @@ When the command returns, it prints a unix socket address that can be used to qu
 We can use `curl` to interact with the shim:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
   "runtime": "yacr",
@@ -109,7 +109,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 We can now start the container by sending the `start` command (`cmd`) in a `POST` HTTP request:
 
 ```
-$ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+$ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
   "runtime": "yacr",
@@ -146,7 +146,7 @@ gitpod       55758  0.0  0.0     1596    4    ?        S    22:02   0:00      \_
 We can query the shim to get the container's logs:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/logs
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/logs
 {"m":"[Sun Jun 12 11:51:44 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:44.947554491Z"}
 {"m":"[Sun Jun 12 11:51:45 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:45.948493454Z"}
 {"m":"[Sun Jun 12 11:51:46 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:46.949371235Z"}
@@ -162,7 +162,7 @@ Each entry is a JSON object with the following properties:
 We can also use the shim HTTP API to send a signal to the container:
 
 ```
-$ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+$ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
   "runtime": "yacr",
@@ -180,7 +180,7 @@ $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.
 Weird, it doesn't look like anything as changed. Let's query the logs again:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/logs
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/logs
 [...]
 {"m":"[Sun Jun 12 11:52:36 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:52:36.001548972Z"}
 {"m":"[Sun Jun 12 11:52:37 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:52:37.002608715Z"}
@@ -191,7 +191,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
 The container printed the message of the `signal_handler` defined in the `hello-loop.sh` script so the container should have exited. We can verify by querying the state of the shim again. This time, the container is marked as `stopped` and we have information in the `status` property:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
   "runtime": "yacr",
@@ -215,20 +215,20 @@ The `exitStatus` is `123` and matches what we defined in the `hello-loop.sh` fil
 We can now delete the container. This API request should not return anything (HTTP 204):
 
 ```
-$ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+$ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 ```
 
 If we query the state of the shim again, it should indicate that the container does not exist anymore:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 container 'alpine-1' does not exist
 ```
 
 Finally, we can terminate the shim with a `DELETE` HTTP request:
 
 ```
-$ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://localhost/
+$ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 BYE
 ```
 
@@ -254,7 +254,7 @@ gitpod      4363  0.0  0.0 1083784 9980 ?        Ssl  10:57   0:00  \_ runc init
 ```
 
 ```
-$ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+$ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 {
   "id": "alpine-runc",
   "runtime": "runc",
@@ -293,7 +293,7 @@ PID   USER     TIME  COMMAND
 Let's kill the container now:
 
 ```
-$ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+$ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 {
   "id": "alpine-runc",
   "runtime": "runc",
@@ -311,7 +311,7 @@ $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-runc/sh
 The state should be updated after the container process has exited:
 
 ```
-$ curl --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+$ curl --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 {
   "id": "alpine-runc",
   "runtime": "runc",
@@ -331,8 +331,8 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localho
 We can now delete the container and terminate the shim:
 
 ```
-$ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
-$ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://localhost/
+$ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
+$ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 BYE
 ```
 

@@ -31,6 +31,10 @@ func (l *LogFile) Write(p []byte) (int, error) {
 	return l.file.Write(p)
 }
 
+func (l *LogFile) Close() error {
+	return l.file.Close()
+}
+
 func (l *LogFile) WriteStream(r io.Reader, name string) {
 	scanner := bufio.NewScanner(r)
 
