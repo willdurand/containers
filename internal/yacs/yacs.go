@@ -6,12 +6,20 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+)
+
+const (
+	containerLogFileName = "container.log"
+	containerPidFileName = "container.pid"
+	runtimeLogFileName   = "runtime.log"
+	shimPidFileName      = "shim.pid"
+	shimSocketName       = "shim.sock"
 )
 
 type Yacs struct {
 	baseDir          string
-	debug            bool
 	bundle           string
 	ContainerID      string
 	ContainerLogFile string
@@ -37,13 +45,13 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 	}
 
 	rootDir, _ := flags.GetString("root")
+
 	bundle, _ := flags.GetString("bundle")
 	containerId, _ := flags.GetString("container-id")
 	containerLogFile, _ := flags.GetString("container-log-file")
-	runtime, _ := flags.GetString("runtime")
-	debug, _ := flags.GetBool("debug")
 	exitCommand, _ := flags.GetString("exit-command")
 	exitCommandArgs, _ := flags.GetStringArray("exit-command-arg")
+	runtime, _ := flags.GetString("runtime")
 
 	baseDir := filepath.Join(rootDir, containerId)
 	if err := os.MkdirAll(baseDir, 0o755); err != nil {
@@ -56,7 +64,7 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 	}
 
 	if containerLogFile == "" {
-		containerLogFile = filepath.Join(baseDir, "container.log")
+		containerLogFile = filepath.Join(baseDir, containerLogFileName)
 	}
 
 	return &Yacs{
@@ -64,7 +72,6 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 		ContainerLogFile: containerLogFile,
 		Exit:             make(chan struct{}),
 		baseDir:          baseDir,
-		debug:            debug,
 		bundle:           bundle,
 		containerStatus:  nil,
 		runtime:          runtime,
@@ -76,18 +83,20 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 
 // PidFileName returns the path to the file that contains the PID of the shim.
 func (y *Yacs) PidFileName() string {
-	return filepath.Join(y.baseDir, "shim.pid")
+	return filepath.Join(y.baseDir, shimPidFileName)
 }
 
 // SocketAddress returns the path to the unix socket used to communicate with
 // the shim.
 func (y *Yacs) SocketAddress() string {
-	return filepath.Join(y.baseDir, "shim.sock")
+	return filepath.Join(y.baseDir, shimSocketName)
 }
 
 // Destroy removes the directory (and all the files) created by the shim.
 func (y *Yacs) Destroy() {
-	os.RemoveAll(y.baseDir)
+	if err := os.RemoveAll(y.baseDir); err != nil {
+		logrus.WithError(err).Warn("failed to remove base directory")
+	}
 }
 
 // setContainerStatus sets an instance of `ContainerStatus` to the shim
@@ -96,22 +105,22 @@ func (y *Yacs) setContainerStatus(status *ContainerStatus) {
 	y.containerStatus = status
 }
 
-// runtimeArgs returns a list of common OCI runtime argumenty.
+// runtimeArgs returns a list of common OCI runtime arguments.
 func (y *Yacs) runtimeArgs() []string {
 	args := []string{
-		"--log", filepath.Join(y.baseDir, fmt.Sprintf("%s.log", y.runtime)),
-		"--log-format", "json",
+		"--log", filepath.Join(y.baseDir, runtimeLogFileName),
 	}
-	if y.debug {
+
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		args = append(args, "--debug")
 	}
 
 	return args
 }
 
-// containerPidFileName returns the path to the file that contains the PID of
-// the container. Usually, this path should be passed to the OCI runtime with a
-// CLI flag (`--pid-file`).
-func (y *Yacs) containerPidFileName() string {
-	return filepath.Join(y.baseDir, "container.pid")
+// containerPidFile returns the path to the file that contains the PID of the
+// container. Usually, this path should be passed to the OCI runtime with a CLI
+// flag (`--pid-file`).
+func (y *Yacs) containerPidFile() string {
+	return filepath.Join(y.baseDir, containerPidFileName)
 }
