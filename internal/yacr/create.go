@@ -153,11 +153,11 @@ func Create(rootDir string, opts CreateOpts) error {
 			"consoleSocket": opts.ConsoleSocket,
 		}).Debug("start container process with pty")
 
-		ptmx, err := pty.Start(containerProcess)
+		ptm, err := pty.Start(containerProcess)
 		if err != nil {
 			return fmt.Errorf("failed to create container (1): %w", err)
 		}
-		defer ptmx.Close()
+		defer ptm.Close()
 
 		// Connect to the socket in order to send the PTY file descriptor.
 		conn, err := net.Dial("unix", opts.ConsoleSocket)
@@ -173,8 +173,8 @@ func Create(rootDir string, opts CreateOpts) error {
 		defer uc.Close()
 
 		// Send file descriptor over socket.
-		oob := unix.UnixRights(int(ptmx.Fd()))
-		uc.WriteMsgUnix([]byte(ptmx.Name()), oob, nil)
+		oob := unix.UnixRights(int(ptm.Fd()))
+		uc.WriteMsgUnix([]byte(ptm.Name()), oob, nil)
 	} else {
 		logrus.WithFields(logrus.Fields{
 			"id": container.ID(),
