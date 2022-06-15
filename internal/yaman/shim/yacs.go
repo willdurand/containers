@@ -11,6 +11,7 @@ import (
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/internal/constants"
 	"github.com/willdurand/containers/internal/yacs"
 	"github.com/willdurand/containers/internal/yaman/container"
 )
@@ -90,6 +91,20 @@ func (s *Yacs) GetState() (*YacsState, error) {
 	}
 
 	return state, nil
+}
+
+// Destroy destroys a stopped container, otherwise an error will be returned.
+func (s *Yacs) Destroy() error {
+	state, err := s.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state.State.Status != constants.StateStopped {
+		return fmt.Errorf("container '%s' is %s", s.ID(), state.State.Status)
+	}
+
+	return s.Container.Destroy()
 }
 
 func (s *Yacs) getHttpClient() (*http.Client, error) {
