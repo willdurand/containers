@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/willdurand/containers/cmd/yaman/container"
 	"github.com/willdurand/containers/cmd/yaman/image"
 	"github.com/willdurand/containers/internal/cli"
 )
@@ -17,4 +18,5 @@ var rootCmd = cli.NewRootCommand(
 
 func init() {
 	image.Register(rootCmd)
+	container.Register(rootCmd)
 }

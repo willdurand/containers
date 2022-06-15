@@ -1,8 +1,11 @@
 package shim
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -15,8 +18,9 @@ import (
 // Yacs represents an instance of the `yacs` shim.
 type Yacs struct {
 	BaseShim
-	SocketAddr string
+	SocketPath string
 	State      *YacsState
+	httpClient *http.Client
 }
 
 // YacsState represents the state of the `yacs` shim.
@@ -65,4 +69,43 @@ func Load(rootDir, id string) (*Yacs, error) {
 	}
 
 	return shim, nil
+}
+
+// GetState queries the shim to retrieve its state and returns it.
+func (s *Yacs) GetState() (*YacsState, error) {
+	c, err := s.getHttpClient()
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.Get("http://shim/")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	state := new(YacsState)
+	if err := json.NewDecoder(resp.Body).Decode(state); err != nil {
+		return nil, err
+	}
+
+	return state, nil
+}
+
+func (s *Yacs) getHttpClient() (*http.Client, error) {
+	if s.SocketPath == "" {
+		return nil, fmt.Errorf("container '%s' is not running", s.Container.ID)
+	}
+
+	if s.httpClient == nil {
+		s.httpClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+					return net.Dial("unix", s.SocketPath)
+				},
+			},
+		}
+	}
+
+	return s.httpClient, nil
 }
