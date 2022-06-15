@@ -24,8 +24,8 @@ func LoadBundleConfig(bundle string) (runtimespec.Spec, error) {
 	return spec, nil
 }
 
-func BaseSpec(rootfs string) runtimespec.Spec {
-	return runtimespec.Spec{
+func BaseSpec(rootfs string) *runtimespec.Spec {
+	return &runtimespec.Spec{
 		Version: runtimespec.Version,
 		Process: &runtimespec.Process{
 			Terminal: false,

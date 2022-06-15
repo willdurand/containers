@@ -8,6 +8,7 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-units v0.4.0
+	github.com/google/uuid v1.3.0
 	github.com/opencontainers/image-spec v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/sevlyar/go-daemon v0.1.5
