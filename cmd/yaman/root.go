@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/willdurand/containers/cmd/yaman/image"
 	"github.com/willdurand/containers/internal/cli"
 )
 
@@ -13,3 +14,7 @@ var rootCmd = cli.NewRootCommand(
 	programName,
 	"Yet another daemonless container manager",
 )
+
+func init() {
+	image.Register(rootCmd)
+}
