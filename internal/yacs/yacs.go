@@ -108,6 +108,8 @@ func (y *Yacs) setContainerStatus(status *ContainerStatus) {
 // runtimeArgs returns a list of common OCI runtime arguments.
 func (y *Yacs) runtimeArgs() []string {
 	args := []string{
+		// We specify a log file so that the container's stderr is "clean" (because
+		// the default log file is `/dev/stderr`).
 		"--log", filepath.Join(y.baseDir, runtimeLogFileName),
 	}
 

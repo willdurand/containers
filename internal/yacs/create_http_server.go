@@ -145,14 +145,7 @@ func (y *Yacs) processCommand(w http.ResponseWriter, r *http.Request) {
 // error is written to the response write `w` and the error is returned to the
 // caller.
 func (y *Yacs) executeRuntimeOrHttpError(w http.ResponseWriter, runtimeArgs []string) ([]byte, error) {
-	cmd := exec.Cmd{
-		Path: y.runtimePath,
-		Args: append(
-			[]string{y.runtime},
-			append(y.runtimeArgs(), runtimeArgs...)...,
-		),
-	}
-
+	cmd := exec.Command(y.runtimePath, append(y.runtimeArgs(), runtimeArgs...)...)
 	logrus.WithField("command", cmd.String()).Debug("invoke runtime")
 
 	output, err := cmd.Output()

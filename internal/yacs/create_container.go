@@ -21,13 +21,9 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		// In case of an error during the creation of the container, we call the
 		// OCI runtime to (force) delete the container.
 		if y.containerStatus == nil {
-			del := exec.Cmd{
-				Path: y.runtimePath,
-				Args: append(
-					[]string{y.runtime, "delete", y.ContainerID, "--force"},
-					y.runtimeArgs()...,
-				),
-			}
+			del := exec.Command(y.runtimePath, append(y.runtimeArgs(), []string{
+				"delete", y.ContainerID, "--force",
+			}...)...)
 			logger.WithField("command", del.String()).Debug("execute delete command")
 
 			if err := del.Run(); err != nil {
@@ -38,13 +34,7 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		}
 
 		if y.exitCommand != "" {
-			exit := exec.Cmd{
-				Path:   y.exitCommand,
-				Args:   append([]string{y.exitCommand}, y.exitCommandArgs...),
-				Stdin:  nil,
-				Stdout: nil,
-				Stderr: nil,
-			}
+			exit := exec.Command(y.exitCommand, y.exitCommandArgs...)
 			logger.WithField("command", exit.String()).Debug("execute exit command")
 
 			if err := exit.Run(); err != nil {
