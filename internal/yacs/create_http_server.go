@@ -50,7 +50,7 @@ func (y *Yacs) CreateHttpServer(logger *logrus.Entry) {
 		http.ServeFile(w, r, y.ContainerLogFile)
 	})
 
-	listener, err := net.Listen("unix", y.SocketAddress())
+	listener, err := net.Listen("unix", y.SocketPath())
 	if err != nil {
 		logger.WithError(err).Panic("failed to listen to socket")
 	}
@@ -60,7 +60,7 @@ func (y *Yacs) CreateHttpServer(logger *logrus.Entry) {
 			logger.WithError(err).Panic("serve() failed")
 		}
 
-		logger.WithField("address", y.SocketAddress()).Debug("listening")
+		logger.WithField("address", y.SocketPath()).Debug("listening")
 	}()
 
 	<-ctx.Done()

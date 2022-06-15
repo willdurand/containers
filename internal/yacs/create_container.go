@@ -32,15 +32,6 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 
 			y.Destroy()
 		}
-
-		if y.exitCommand != "" {
-			exit := exec.Command(y.exitCommand, y.exitCommandArgs...)
-			logger.WithField("command", exit.String()).Debug("execute exit command")
-
-			if err := exit.Run(); err != nil {
-				logger.WithError(err).Warn("exit command failed")
-			}
-		}
 	}()
 
 	logFile, err := log.NewFile(y.ContainerLogFile)
@@ -71,8 +62,8 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		[]string{y.runtime},
 		append(y.runtimeArgs(), []string{
 			"create", y.ContainerID,
-			"--bundle", y.bundle,
-			"--pid-file", y.containerPidFile(),
+			"--bundle", y.bundleDir,
+			"--pid-file", y.containerPidFilePath(),
 		}...)...,
 	)
 
@@ -96,13 +87,14 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	// The runtime should have written the container's PID to a file because
 	// that's how the runtime passes this value to the shim. The shim needs the
 	// PID to be able to interact with the container directly.
-	data, err := os.ReadFile(y.containerPidFile())
+	containerPidFilePath := y.containerPidFilePath()
+	data, err := os.ReadFile(containerPidFilePath)
 	if err != nil {
-		logger.WithError(err).Panicf("failed to read '%s'", y.containerPidFile())
+		logger.WithError(err).Panicf("failed to read '%s'", containerPidFilePath)
 	}
 	containerPid, err := strconv.Atoi(string(bytes.TrimSpace(data)))
 	if err != nil {
-		logger.WithError(err).Panicf("failed to parse pid from '%s'", y.containerPidFile())
+		logger.WithError(err).Panicf("failed to parse pid from '%s'", containerPidFilePath)
 	}
 
 	// At this point, the shim knows that the runtime has successfully created a
@@ -125,4 +117,13 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	logger.WithFields(logrus.Fields{
 		"exitStatus": y.containerStatus.ExitStatus(),
 	}).Info("container exited")
+
+	if y.exitCommand != "" {
+		exit := exec.Command(y.exitCommand, y.exitCommandArgs...)
+		logger.WithField("command", exit.String()).Debug("execute exit command")
+
+		if err := exit.Run(); err != nil {
+			logger.WithError(err).Warn("exit command failed")
+		}
+	}
 }

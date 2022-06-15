@@ -51,7 +51,7 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	ctx := &daemon.Context{
-		PidFileName: shim.PidFileName(),
+		PidFileName: shim.PidFilePath(),
 		PidFilePerm: 0o644,
 	}
 
@@ -60,7 +60,7 @@ func run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create daemon: %w", err)
 	}
 	if parent != nil {
-		fmt.Println(shim.SocketAddress())
+		fmt.Println(shim.SocketPath())
 		return nil
 	}
 	defer ctx.Release()

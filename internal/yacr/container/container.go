@@ -20,36 +20,36 @@ import (
 )
 
 type BaseContainer struct {
-	spec      runtimespec.Spec
-	state     runtimespec.State
-	createdAt time.Time
-	rootDir   string
-	stateFile string
+	spec          runtimespec.Spec
+	state         runtimespec.State
+	createdAt     time.Time
+	rootDir       string
+	stateFilePath string
 }
 
 type ContainerState struct {
 	BaseContainer
 }
 
-func New(rootDir string, id string, bundle string) (*ContainerState, error) {
+func New(rootDir string, id string, bundleDir string) (*ContainerState, error) {
 	containerDir := filepath.Join(rootDir, id)
 
-	if bundle != "" {
+	if bundleDir != "" {
 		if _, err := os.Stat(containerDir); err == nil {
 			return nil, fmt.Errorf("container '%s' already exists", id)
 		}
 
-		if !filepath.IsAbs(bundle) {
-			absBundle, err := filepath.Abs(bundle)
+		if !filepath.IsAbs(bundleDir) {
+			absoluteDir, err := filepath.Abs(bundleDir)
 			if err != nil {
 				return nil, err
 			}
-			bundle = absBundle
+			bundleDir = absoluteDir
 		}
 	}
 
-	spec, err := runtime.LoadBundleConfig(bundle)
-	if bundle != "" && err != nil {
+	spec, err := runtime.LoadSpec(bundleDir)
+	if bundleDir != "" && err != nil {
 		return nil, err
 	}
 
@@ -59,11 +59,11 @@ func New(rootDir string, id string, bundle string) (*ContainerState, error) {
 			Version: runtimespec.Version,
 			ID:      id,
 			Status:  constants.StateCreating,
-			Bundle:  bundle,
+			Bundle:  bundleDir,
 		},
-		createdAt: time.Now(),
-		rootDir:   containerDir,
-		stateFile: filepath.Join(containerDir, "state.json"),
+		createdAt:     time.Now(),
+		rootDir:       containerDir,
+		stateFilePath: filepath.Join(containerDir, "state.json"),
 	}
 
 	return &ContainerState{baseContainer}, nil
@@ -100,7 +100,7 @@ func LoadWithBundleConfig(rootDir string, id string) (*ContainerState, error) {
 		return container, err
 	}
 
-	spec, err := runtime.LoadBundleConfig(container.state.Bundle)
+	spec, err := runtime.LoadSpec(container.state.Bundle)
 	if err != nil {
 		return container, err
 	}
@@ -123,7 +123,7 @@ func LoadFromContainer(rootDir string, id string) (*BaseContainer, error) {
 	container.state.Pid = os.Getpid()
 	container.createdAt = c.createdAt
 	container.rootDir = c.rootDir
-	container.stateFile = ""
+	container.stateFilePath = ""
 
 	return container, nil
 }
@@ -267,7 +267,7 @@ func (c *ContainerState) Destroy() error {
 }
 
 func (c *ContainerState) loadContainerState() error {
-	data, err := ioutil.ReadFile(c.stateFile)
+	data, err := ioutil.ReadFile(c.stateFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read state.json: %w", err)
 	}
@@ -299,7 +299,7 @@ func (c *ContainerState) saveContainerState() error {
 		return fmt.Errorf("failed to serialize container state: %w", err)
 	}
 
-	if err := ioutil.WriteFile(c.stateFile, data, 0o644); err != nil {
+	if err := ioutil.WriteFile(c.stateFilePath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to save container state: %w", err)
 	}
 

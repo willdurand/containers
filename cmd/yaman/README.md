@@ -4,6 +4,10 @@ Yaman is a daemon-less container manager inspired by [Docker][] and [Podman][].
 
 ## Commands
 
+**👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
+
+⚠️ You must have "root" privileges to use `yaman` because the tool needs to mount the "rootfs" of a container as an Overlay FS. You can use `sudo yaman` as shown in the next sections.
+
 ### `yaman image`
 
 Manage OCI images.

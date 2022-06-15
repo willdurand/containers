@@ -26,30 +26,30 @@ type ContainerOpts struct {
 }
 
 type Container struct {
-	ID        string
-	BaseDir   string
-	Image     *image.Image
-	Config    *runtimespec.Spec
-	Opts      ContainerOpts
-	CreatedAt time.Time
-	StartedAt time.Time
-	ExitedAt  time.Time
-	LogFile   string
+	ID          string
+	BaseDir     string
+	Image       *image.Image
+	Config      *runtimespec.Spec
+	Opts        ContainerOpts
+	CreatedAt   time.Time
+	StartedAt   time.Time
+	ExitedAt    time.Time
+	LogFilePath string
 }
 
-const containerLogFileName = "container.log"
+const logFileName = "container.log"
 
 func New(rootDir string, img *image.Image, opts ContainerOpts) *Container {
 	id := strings.ReplaceAll(uuid.NewString(), "-", "")
 	baseDir := filepath.Join(GetBaseDir(rootDir), id)
 
 	return &Container{
-		ID:        id,
-		BaseDir:   baseDir,
-		Image:     img,
-		Opts:      opts,
-		CreatedAt: time.Now(),
-		LogFile:   filepath.Join(baseDir, containerLogFileName),
+		ID:          id,
+		BaseDir:     baseDir,
+		Image:       img,
+		Opts:        opts,
+		CreatedAt:   time.Now(),
+		LogFilePath: filepath.Join(baseDir, logFileName),
 	}
 }
 
