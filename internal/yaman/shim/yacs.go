@@ -1,13 +1,18 @@
 package shim
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -105,6 +110,48 @@ func (s *Yacs) Destroy() error {
 	}
 
 	return s.Container.Destroy()
+}
+
+// CopyLogs copies all the container logs returned by the shim to the provided
+// writers.
+func (s *Yacs) CopyLogs(stdout io.Writer, stderr io.Writer, withTimestamps bool) error {
+	file, err := os.Open(s.Container.LogFilePath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		var l map[string]string
+		if err := json.Unmarshal(scanner.Bytes(), &l); err != nil {
+			return err
+		}
+
+		data := append([]byte(l["m"]), '\n')
+		if withTimestamps {
+			if t, err := time.Parse(time.RFC3339, l["t"]); err == nil {
+				data = append(
+					// TODO: I wanted to use time.RFC3339Nano but the length isn't fixed
+					// and that breaks the alignement when rendered.
+					[]byte(t.Local().Format(time.RFC3339)),
+					append([]byte{' ', '-', ' '}, data...)...,
+				)
+			}
+		}
+
+		if l["s"] == "stderr" {
+			stderr.Write(data)
+		} else {
+			stdout.Write(data)
+		}
+	}
+
+	return nil
 }
 
 func (s *Yacs) getHttpClient() (*http.Client, error) {
