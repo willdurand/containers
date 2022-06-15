@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
@@ -98,6 +100,66 @@ func (s *Yacs) GetState() (*YacsState, error) {
 	return state, nil
 }
 
+// Terminates stops the shim if the container is stopped, otherwise an error is
+// returned.
+//
+// Stopping the shim is performed in multiple steps: (1) delete the container,
+// (2) clean-up the container (e.g., unmount rootfs), (3) terminate the shim.
+// Once this is done, we persist the final shim state on disk so that other
+// Yaman commands can read and display information until the container is
+// actually deleted.
+func (s *Yacs) Terminate() error {
+	state, err := s.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state.State.Status != constants.StateStopped {
+		return fmt.Errorf("container '%s' is %s", s.Container.ID, state.State.Status)
+	}
+
+	if err := s.sendCommand(url.Values{"cmd": []string{"delete"}}); err != nil {
+		return err
+	}
+
+	if err := s.Container.CleanUp(); err != nil {
+		return err
+	}
+
+	// Terminate the shim process by sending a DELETE request.
+	req, err := http.NewRequest(http.MethodDelete, "http://shim/", nil)
+	if err != nil {
+		return err
+	}
+
+	c, err := s.getHttpClient()
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Let's persist a copy of the shim state (before it got terminated) on disk.
+	s.State = state
+	s.SocketPath = ""
+	s.Container.ExitedAt = time.Now()
+
+	data, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+
+	if err := ioutil.WriteFile(s.stateFilePath(), data, 0o644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Destroy destroys a stopped container, otherwise an error will be returned.
 func (s *Yacs) Destroy() error {
 	state, err := s.GetState()
@@ -149,6 +211,29 @@ func (s *Yacs) CopyLogs(stdout io.Writer, stderr io.Writer, withTimestamps bool)
 		} else {
 			stdout.Write(data)
 		}
+	}
+
+	return nil
+}
+
+func (s *Yacs) sendCommand(values url.Values) error {
+	c, err := s.getHttpClient()
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.PostForm("http://shim/", values)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 300 {
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("%s: %s", values.Get("cmd"), data)
 	}
 
 	return nil
