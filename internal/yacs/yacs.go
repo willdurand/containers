@@ -20,7 +20,7 @@ const (
 
 type Yacs struct {
 	baseDir          string
-	bundle           string
+	bundleDir        string
 	ContainerID      string
 	ContainerLogFile string
 	containerStatus  *ContainerStatus
@@ -72,7 +72,7 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 		ContainerLogFile: containerLogFile,
 		Exit:             make(chan struct{}),
 		baseDir:          baseDir,
-		bundle:           bundle,
+		bundleDir:        bundle,
 		containerStatus:  nil,
 		runtime:          runtime,
 		runtimePath:      runtimePath,
@@ -81,14 +81,14 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 	}, nil
 }
 
-// PidFileName returns the path to the file that contains the PID of the shim.
-func (y *Yacs) PidFileName() string {
+// PidFilePath returns the path to the file that contains the PID of the shim.
+func (y *Yacs) PidFilePath() string {
 	return filepath.Join(y.baseDir, shimPidFileName)
 }
 
-// SocketAddress returns the path to the unix socket used to communicate with
-// the shim.
-func (y *Yacs) SocketAddress() string {
+// SocketPath returns the path to the unix socket used to communicate with the
+// shim.
+func (y *Yacs) SocketPath() string {
 	return filepath.Join(y.baseDir, shimSocketName)
 }
 
@@ -120,9 +120,9 @@ func (y *Yacs) runtimeArgs() []string {
 	return args
 }
 
-// containerPidFile returns the path to the file that contains the PID of the
-// container. Usually, this path should be passed to the OCI runtime with a CLI
-// flag (`--pid-file`).
-func (y *Yacs) containerPidFile() string {
+// containerPidFilePath returns the path to the file that contains the PID of
+// the container. Usually, this path should be passed to the OCI runtime with a
+// CLI flag (`--pid-file`).
+func (y *Yacs) containerPidFilePath() string {
 	return filepath.Join(y.baseDir, containerPidFileName)
 }

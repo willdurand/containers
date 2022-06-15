@@ -10,10 +10,10 @@ import (
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-func LoadBundleConfig(bundle string) (runtimespec.Spec, error) {
+func LoadSpec(bundleDir string) (runtimespec.Spec, error) {
 	var spec runtimespec.Spec
 
-	data, err := ioutil.ReadFile(filepath.Join(bundle, "config.json"))
+	data, err := ioutil.ReadFile(filepath.Join(bundleDir, "config.json"))
 	if err != nil {
 		return spec, fmt.Errorf("failed to read config.json: %w", err)
 	}
@@ -33,7 +33,7 @@ func BaseSpec(rootfs string) *runtimespec.Spec {
 				UID: 0,
 				GID: 0,
 			},
-			Args: []string{"sh"},
+			Args: []string{"sleep", "100"},
 			Env:  []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 			Cwd:  "/",
 		},
