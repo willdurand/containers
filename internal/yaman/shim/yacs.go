@@ -216,6 +216,35 @@ func (s *Yacs) CopyLogs(stdout io.Writer, stderr io.Writer, withTimestamps bool)
 	return nil
 }
 
+// StopContainer stops the container by sending a SIGTERM signal first and a
+// SIGKILL if the first signal didn't stop the container.
+func (s *Yacs) StopContainer() error {
+	if err := s.sendCommand(url.Values{
+		"cmd":    []string{"kill"},
+		"signal": []string{"SIGTERM"},
+	}); err != nil {
+		return err
+	}
+
+	state, err := s.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state.State.Status != constants.StateStopped {
+		logrus.WithField("id", s.Container.ID).Debug("SIGTERM failed, sending SIGKILL")
+
+		if err := s.sendCommand(url.Values{
+			"cmd":    []string{"kill"},
+			"signal": []string{"SIGKILL"},
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Yacs) sendCommand(values url.Values) error {
 	c, err := s.getHttpClient()
 	if err != nil {
