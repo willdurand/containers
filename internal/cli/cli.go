@@ -53,7 +53,7 @@ func Execute(cmd *cobra.Command) {
 }
 
 func PrintUserError(err error) {
-	fmt.Fprintf(os.Stderr, "Error: %v", err)
+	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 }
 
 // logToStderr returns true when the logger is configured to write to stderr,
