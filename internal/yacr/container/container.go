@@ -15,6 +15,7 @@ import (
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/constants"
+	"github.com/willdurand/containers/internal/runtime"
 	"github.com/willdurand/containers/internal/yacr/ipc"
 )
 
@@ -47,7 +48,7 @@ func New(rootDir string, id string, bundle string) (*ContainerState, error) {
 		}
 	}
 
-	spec, err := loadBundleConfig(bundle)
+	spec, err := runtime.LoadBundleConfig(bundle)
 	if bundle != "" && err != nil {
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func LoadWithBundleConfig(rootDir string, id string) (*ContainerState, error) {
 		return container, err
 	}
 
-	spec, err := loadBundleConfig(container.state.Bundle)
+	spec, err := runtime.LoadBundleConfig(container.state.Bundle)
 	if err != nil {
 		return container, err
 	}
@@ -303,17 +304,4 @@ func (c *ContainerState) saveContainerState() error {
 	}
 
 	return nil
-}
-
-func loadBundleConfig(bundle string) (runtimespec.Spec, error) {
-	var spec runtimespec.Spec
-	data, err := ioutil.ReadFile(filepath.Join(bundle, "config.json"))
-	if err != nil {
-		return spec, fmt.Errorf("failed to read config.json: %w", err)
-	}
-	if err := json.Unmarshal(data, &spec); err != nil {
-		return spec, fmt.Errorf("failed to parse config.json: %w", err)
-	}
-
-	return spec, nil
 }
