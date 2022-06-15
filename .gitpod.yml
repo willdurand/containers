@@ -1,6 +1,8 @@
 tasks:
   - name: bootstrap
     before: |
+      echo 'YAMAN_ROOT_DIR=/tmp/yaman' | sudo tee -a /etc/environment
+
       mkdir -p ~/.run
       chmod 700 ~/.run
       echo 'export XDG_RUNTIME_DIR=~/.run' >> ~/.bashrc.d/100-containers

@@ -11,12 +11,13 @@ bin_dir  := $(CURDIR)/bin
 go_build_flags := -ldflags "-X github.com/willdurand/containers/internal/version.GitCommit=$(git_hash)"
 
 all: ## build all binaries
-all: yacr yacs
+all: yacr yacs yaman
 .PHONY: all
 
 install: ## install the binaries on the system (using symlinks)
 	ln -fs $(bin_dir)/yacr /usr/local/bin/yacr
 	ln -fs $(bin_dir)/yacs /usr/local/bin/yacs
+	ln -fs $(bin_dir)/yaman /usr/local/bin/yaman
 .PHONY: install
 
 yacr: ## build the container runtime
@@ -28,6 +29,11 @@ yacs: ## build the container shim
 	@mkdir -p $(bin_dir)
 	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
 .PHONY: yacs
+
+yaman: ## build the container manager
+	@mkdir -p $(bin_dir)
+	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
+.PHONY: yaman
 
 alpine_bundle: ## create a rootless bundle (for testing purposes)
 	rm -rf /tmp/alpine-bundle/rootfs

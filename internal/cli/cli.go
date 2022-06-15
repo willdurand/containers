@@ -23,15 +23,18 @@ func NewRootCommand(programName, shortDescription string) *cobra.Command {
 		Short:   shortDescription,
 		Version: version.Version(),
 		CompletionOptions: cobra.CompletionOptions{
-			HiddenDefaultCmd: true,
+			DisableDefaultCmd:   false,
+			HiddenDefaultCmd:    true,
+			DisableDescriptions: true,
 		},
 		SilenceErrors:     true,
 		PersistentPreRunE: makeRootPreRunE(programName),
 	}
 
 	rootCmd.PersistentFlags().String("root", getDefaultRootDir(programName), "root directory")
-	rootCmd.PersistentFlags().String("log", "", `log file (default "/dev/stderr")`)
-	rootCmd.PersistentFlags().String("log-format", "", `log format (default "text")`)
+	rootCmd.PersistentFlags().String("log", "", `path to the log file (default "/dev/stderr")`)
+	rootCmd.PersistentFlags().String("log-level", "warn", "set the logging level")
+	rootCmd.PersistentFlags().String("log-format", "", `set the loging format (default "text")`)
 	rootCmd.PersistentFlags().Bool("debug", false, "enable debug logging")
 
 	return rootCmd
@@ -42,11 +45,15 @@ func Execute(cmd *cobra.Command) {
 		logrus.Error(err)
 
 		if !logToStderr() {
-			fmt.Fprintln(os.Stderr, err)
+			PrintUserError(err)
 		}
 
 		os.Exit(1)
 	}
+}
+
+func PrintUserError(err error) {
+	fmt.Fprintf(os.Stderr, "Error: %v", err)
 }
 
 // logToStderr returns true when the logger is configured to write to stderr,
@@ -82,6 +89,13 @@ func makeRootPreRunE(programName string) func(cmd *cobra.Command, args []string)
 
 			logrus.SetOutput(out)
 		}
+
+		logLevel, _ := cmd.Flags().GetString("log-level")
+		level, err := logrus.ParseLevel(logLevel)
+		if err != nil {
+			level = logrus.WarnLevel
+		}
+		logrus.SetLevel(level)
 
 		if debug, _ := cmd.Flags().GetBool("debug"); debug {
 			out, err := os.OpenFile(filepath.Join(rootDir, "debug.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
@@ -140,6 +154,11 @@ func getDefaultRootDir(programName string) string {
 
 	if xdgRuntimeDir != "" && os.Getuid() != 0 {
 		rootDir = filepath.Join(xdgRuntimeDir, programName)
+	}
+
+	envVar := fmt.Sprintf("%s_ROOT_DIR", strings.ToUpper(programName))
+	if dir := os.Getenv(envVar); dir != "" {
+		rootDir = dir
 	}
 
 	return rootDir

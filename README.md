@@ -6,6 +6,7 @@ This is a repository with some code I wrote to **learn** more about containers. 
 
 - [`yacr`](./cmd/yacr/README.md): a container runtime that implements the [runtime-spec][]
 - [`yacs`](./cmd/yacs/README.md): a container shim with an (HTTP) API
+- [`yaman`](./cmd/yaman/README.md): a container manager that leverages the two previous tools
 
 For more information, please refer to the documentation of each sub-project.
 
