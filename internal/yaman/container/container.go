@@ -140,7 +140,7 @@ func (c *Container) Command() []string {
 	return args
 }
 
-func (c *Container) Cleanup() error {
+func (c *Container) CleanUp() error {
 	if err := syscall.Unmount(c.RootFS(), 0); err != nil {
 		// This likely happens because the rootfs has been previously unmounted.
 		logrus.WithError(err).Debug("failed to unmount rootfs")
@@ -151,7 +151,7 @@ func (c *Container) Cleanup() error {
 }
 
 func (c *Container) Destroy() error {
-	if err := c.Cleanup(); err != nil {
+	if err := c.CleanUp(); err != nil {
 		return err
 	}
 

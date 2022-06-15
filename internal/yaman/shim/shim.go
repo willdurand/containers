@@ -1,6 +1,8 @@
 package shim
 
 import (
+	"path/filepath"
+
 	"github.com/willdurand/containers/internal/yaman/container"
 )
 
@@ -22,4 +24,8 @@ const stateFileName = "shim.json"
 // unique.
 func (s *BaseShim) ID() string {
 	return s.Container.ID
+}
+
+func (s *BaseShim) stateFilePath() string {
+	return filepath.Join(s.Container.BaseDir, stateFileName)
 }
