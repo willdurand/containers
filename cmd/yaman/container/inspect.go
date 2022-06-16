@@ -10,11 +10,12 @@ import (
 
 func init() {
 	cmd := &cobra.Command{
-		Use:          "inspect <container>",
-		Short:        "Return low-level information on the container as JSON",
-		RunE:         inspect,
-		SilenceUsage: true,
-		Args:         cobra.ExactArgs(1),
+		Use:               "inspect <container>",
+		Short:             "Return low-level information on the container as JSON",
+		RunE:              inspect,
+		SilenceUsage:      true,
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeContainerIds,
 	}
 	containerCommand.AddCommand(cmd)
 }

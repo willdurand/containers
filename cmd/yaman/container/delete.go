@@ -9,12 +9,13 @@ import (
 
 func init() {
 	cmd := &cobra.Command{
-		Use:          "delete <container> [<container>...]",
-		Aliases:      []string{"del", "rm", "remove"},
-		Short:        "Delete one or more containers",
-		RunE:         delete,
-		SilenceUsage: true,
-		Args:         cobra.MinimumNArgs(1),
+		Use:               "delete <container> [<container>...]",
+		Aliases:           []string{"del", "rm", "remove"},
+		Short:             "Delete one or more containers",
+		RunE:              delete,
+		SilenceUsage:      true,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: completeManyContainerIds,
 	}
 	containerCommand.AddCommand(cmd)
 }

@@ -21,5 +21,11 @@ library/alpine   latest      2022-05-23T19:19:31Z   34 hours ago   docker.io
 library/redis    latest      2022-06-08T18:34:43Z   47 hours ago   docker.io
 ```
 
+## Completion
+
+```
+$ yaman completion bash | sudo tee /etc/bash_completion.d/yaman > /dev/null
+```
+
 [docker]: https://docs.docker.com/reference/
 [podman]: https://docs.podman.io/en/latest/
