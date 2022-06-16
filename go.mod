@@ -5,10 +5,12 @@ go 1.18
 require github.com/spf13/cobra v1.4.0
 
 require (
+	github.com/artyom/untar v1.0.1
 	github.com/creack/pty v1.1.18
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/google/uuid v1.3.0
+	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/sevlyar/go-daemon v0.1.5
@@ -17,7 +19,6 @@ require (
 
 require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	gotest.tools/v3 v3.2.0 // indirect
 )

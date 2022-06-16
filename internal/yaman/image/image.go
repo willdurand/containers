@@ -73,7 +73,7 @@ func (i *Image) Manifest() (*imagespec.Manifest, error) {
 		return i.manifest, nil
 	}
 
-	data, err := os.ReadFile(filepath.Join(i.BaseDir, "manifest.json"))
+	data, err := os.ReadFile(i.ManifestFilePath())
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (i *Image) Config() (*imagespec.Image, error) {
 		return i.config, nil
 	}
 
-	file := filepath.Join(i.BaseDir, "blobs", "config.json")
+	file := filepath.Join(i.ConfigFilePath())
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -128,10 +128,30 @@ func (i *Image) LayerDirs() []string {
 	// Source: https://wiki.archlinux.org/title/Overlay_filesystem
 	for idx := len(config.RootFS.DiffIDs) - 1; idx >= 0; idx-- {
 		digest := config.RootFS.DiffIDs[idx]
-		dirs = append(dirs, filepath.Join(i.BaseDir, "layers", digest.Encoded()))
+		dirs = append(dirs, filepath.Join(i.LayersDir(), digest.Encoded()))
 	}
 
 	return dirs
+}
+
+// ManifestFilePath returns the path to the `manifest.json` file.
+func (i *Image) ManifestFilePath() string {
+	return filepath.Join(i.BaseDir, "manifest.json")
+}
+
+// ConfigFilePath returns the path to the `config.json` file.
+func (i *Image) ConfigFilePath() string {
+	return filepath.Join(i.BlobsDir(), "config.json")
+}
+
+// BlobsDir returns the path to layers should be written to.
+func (i *Image) BlobsDir() string {
+	return filepath.Join(i.BaseDir, "blobs")
+}
+
+// LayersDir returns the path to layers should be written to.
+func (i *Image) LayersDir() string {
+	return filepath.Join(i.BaseDir, "layers")
 }
 
 // isNameValid validates the name of an image.
