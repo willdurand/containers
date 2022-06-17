@@ -51,7 +51,7 @@ alpine_bundle: ## create a rootless bundle (for testing purposes)
 .PHONY: alpine_bundle
 
 hello_world_image:
-	cd extra/docker/hello-world/ && \
+	cd extras/docker/hello-world/ && \
 	zig cc -target x86_64-linux-musl -static hello.c -o hello && \
 	docker build -t willdurand/hello-world .
 .PHONY: hello_world_image
