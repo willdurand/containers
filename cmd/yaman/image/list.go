@@ -8,6 +8,7 @@ import (
 
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 )
 
@@ -16,7 +17,7 @@ func init() {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List images",
-		RunE:    list,
+		Run:     cli.HandleErrors(list),
 		Args:    cobra.NoArgs,
 	}
 	imageCommand.AddCommand(cmd)

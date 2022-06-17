@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 )
 
@@ -12,8 +13,7 @@ func init() {
 	cmd := &cobra.Command{
 		Use:               "inspect <container>",
 		Short:             "Return low-level information on the container as JSON",
-		RunE:              inspect,
-		SilenceUsage:      true,
+		Run:               cli.HandleErrors(inspect),
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completeContainerIds,
 	}

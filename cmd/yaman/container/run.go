@@ -11,6 +11,7 @@ import (
 
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 	"github.com/willdurand/containers/internal/yaman/container"
 	"github.com/willdurand/containers/internal/yaman/shim"
@@ -19,11 +20,10 @@ import (
 
 func init() {
 	cmd := &cobra.Command{
-		Use:          "run <image> [<command> [<args>...]]",
-		Short:        "Run a command in a new container",
-		RunE:         run,
-		SilenceUsage: true,
-		Args:         cobra.MinimumNArgs(1),
+		Use:   "run <image> [<command> [<args>...]]",
+		Short: "Run a command in a new container",
+		Run:   cli.HandleErrors(run),
+		Args:  cobra.MinimumNArgs(1),
 	}
 	cmd.Flags().BoolP("detach", "d", false, "run container in background and print container ID")
 	cmd.Flags().String("hostname", "", "set the container hostname")

@@ -2,17 +2,17 @@ package container
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 )
 
 func init() {
 	cmd := &cobra.Command{
-		Use:          "cleanup <container>",
-		Short:        "Clean-up a container",
-		Hidden:       true,
-		RunE:         cleanUp,
-		SilenceUsage: true,
-		Args:         cobra.ExactArgs(1),
+		Use:    "cleanup <container>",
+		Short:  "Clean-up a container",
+		Hidden: true,
+		Run:    cli.HandleErrors(cleanUp),
+		Args:   cobra.ExactArgs(1),
 	}
 	containerCommand.AddCommand(cmd)
 }
