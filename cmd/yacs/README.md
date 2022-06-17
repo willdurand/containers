@@ -19,26 +19,16 @@ Let's edit the `config.json` file generated in `/tmp/alpine-bundle` as follows:
 ```diff
 --- a/config.json
 +++ b/config.json
-@@ -1,13 +1,13 @@
- {
-        "ociVersion": "1.0.2-dev",
-        "process": {
--               "terminal": true,
-+               "terminal": false,
-                "user": {
-                        "uid": 0,
-                        "gid": 0
-                },
-                "args": [
--                       "sh"
-+                       "sh", "/hello-loop.sh"
-                ],
-                "env": [
-                        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-@@ -183,4 +183,4 @@
-                        "/proc/sysrq-trigger"
-                ]
-        }
+@@ -6,8 +6,7 @@
+       "gid": 0
+     },
+     "args": [
+-      "sleep",
+-      "100"
++      "sh", "/hello-loop.sh"
+     ],
+     "env": [
+       "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ```
 
 We should also create this new file named `hello-loop.sh`:

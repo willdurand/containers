@@ -39,7 +39,7 @@ alpine_bundle: ## create a rootless bundle (for testing purposes)
 	rm -rf /tmp/alpine-bundle/rootfs
 	mkdir -p /tmp/alpine-bundle/rootfs
 	docker export $$(docker create alpine) | tar -C /tmp/alpine-bundle/rootfs -xvf -
-	cd /tmp/alpine-bundle && runc spec --rootless
+	yacr spec --bundle /tmp/alpine-bundle
 .PHONY: alpine_bundle
 
 help: ## show this help message
