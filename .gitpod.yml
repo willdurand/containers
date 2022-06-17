@@ -1,8 +1,8 @@
 tasks:
   - name: bootstrap
     before: |
-      # This is to hide a warning in `sudo make install`.
-      git config --global --add safe.directory "$GITPOD_REPO_ROOT"
+      # This is needed to hide a warning in `sudo make install`.
+      sudo git config --global --add safe.directory "$GITPOD_REPO_ROOT"
 
       echo 'YAMAN_ROOT_DIR=/tmp/yaman' | sudo tee -a /etc/environment
 
