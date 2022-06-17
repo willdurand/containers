@@ -105,6 +105,12 @@ uid=0(root) gid=0(root) groups=0(root)
 
 ```
 $ sudo yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
+```
+
+<details>
+<summary>click to reveal the JSON output</summary>
+
+```json
 {
   "Id": "2be09afa2b3b47c2a9975017aa2913fc",
   "Root": "/run/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc",
@@ -307,6 +313,7 @@ $ sudo yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
   }
 }
 ```
+</details>
 
 #### `yaman container stop`
 
