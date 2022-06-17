@@ -5,20 +5,28 @@ MAKEFLAGS += --warn-undefined-variables
 # Disable implicit rules.
 .SUFFIXES:
 
-git_hash := $(shell git rev-parse --short HEAD)
-bin_dir  := $(CURDIR)/bin
+git_hash      := $(shell git rev-parse --short HEAD)
+bin_dir       := $(CURDIR)/bin
+binaries      := yacr yacs yaman
+binaries_comp := yacr yaman
 
 go_build_flags := -ldflags "-X github.com/willdurand/containers/internal/version.GitCommit=$(git_hash)"
 
 all: ## build all binaries
-all: yacr yacs yaman
+all: $(binaries)
 .PHONY: all
 
-install: ## install the binaries on the system (using symlinks)
-	ln -fs $(bin_dir)/yacr /usr/local/bin/yacr
-	ln -fs $(bin_dir)/yacs /usr/local/bin/yacs
-	ln -fs $(bin_dir)/yaman /usr/local/bin/yaman
+install: ## install the binaries on the system using symlinks (sudo required)
+	@for binary in $(binaries); do \
+		ln -fs "$(bin_dir)/$$binary" "/usr/local/bin/$$binary"; \
+	done
 .PHONY: install
+
+install_completion: ## generate and install the completion files (sudo required)
+	@for binary in $(binaries_comp); do \
+		"$(bin_dir)/$$binary" completion bash | tee "/etc/bash_completion.d/$$binary" > /dev/null; \
+	done
+.PHONY: install_completion
 
 yacr: ## build the container runtime
 	@mkdir -p $(bin_dir)

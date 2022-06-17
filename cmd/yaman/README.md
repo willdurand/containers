@@ -338,11 +338,5 @@ CONTAINER ID                       IMAGE                             COMMAND    
 $ sudo yaman c delete 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
-## Completion
-
-```
-$ yaman completion bash | sudo tee /etc/bash_completion.d/yaman > /dev/null
-```
-
 [docker]: https://docs.docker.com/reference/
 [podman]: https://docs.podman.io/en/latest/

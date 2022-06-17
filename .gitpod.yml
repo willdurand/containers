@@ -1,6 +1,9 @@
 tasks:
   - name: bootstrap
     before: |
+      # This is to hide a warning in `sudo make install`.
+      git config --global --add safe.directory "$GITPOD_REPO_ROOT"
+
       echo 'YAMAN_ROOT_DIR=/tmp/yaman' | sudo tee -a /etc/environment
 
       mkdir -p ~/.run
@@ -8,3 +11,7 @@ tasks:
       echo 'export XDG_RUNTIME_DIR=~/.run' >> ~/.bashrc.d/100-containers
 
       source ~/.bashrc.d/100-containers
+
+      # Build and install the different tools
+      make all && sudo make install && sudo make install_completion
+      source /etc/bash_completion
