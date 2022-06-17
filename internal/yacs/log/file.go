@@ -1,9 +1,7 @@
 package log
 
 import (
-	"bufio"
 	"encoding/json"
-	"io"
 	"os"
 	"sync"
 	"time"
@@ -12,8 +10,9 @@ import (
 )
 
 type LogFile struct {
-	file *os.File
 	sync.Mutex
+
+	file *os.File
 }
 
 func NewFile(name string) (*LogFile, error) {
@@ -25,33 +24,26 @@ func NewFile(name string) (*LogFile, error) {
 	return &LogFile{file: file}, nil
 }
 
-func (l *LogFile) Write(p []byte) (int, error) {
+func (l *LogFile) WriteMessage(s, m string) {
 	l.Lock()
 	defer l.Unlock()
-	return l.file.Write(p)
+
+	data, err := json.Marshal(map[string]interface{}{
+		"t": time.Now().UTC(),
+		"m": m,
+		"s": s,
+	})
+
+	if err == nil {
+		if _, err := l.file.Write(append(data, '\n')); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"s":     s,
+				"error": err,
+			}).Warn("failed to write to container log file")
+		}
+	}
 }
 
 func (l *LogFile) Close() error {
 	return l.file.Close()
-}
-
-func (l *LogFile) WriteStream(r io.Reader, name string) {
-	scanner := bufio.NewScanner(r)
-
-	for scanner.Scan() {
-		data, err := json.Marshal(map[string]interface{}{
-			"t": time.Now().UTC(),
-			"m": scanner.Text(),
-			"s": name,
-		})
-
-		if err == nil {
-			if _, err := l.Write(append(data, '\n')); err != nil {
-				logrus.WithFields(logrus.Fields{
-					"s":     name,
-					"error": err,
-				}).Warn("failed to write to container log file")
-			}
-		}
-	}
 }

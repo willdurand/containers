@@ -189,20 +189,20 @@ func Create(rootDir string, opts CreateOpts) error {
 		}
 	}
 
-	// Wait until the container has started.
+	// Wait until the container has "booted".
 	initConn, err := initListener.Accept()
 	if err != nil {
 		return fmt.Errorf("init accept error: %w", err)
 	}
 	defer initConn.Close()
 
-	if err := ipc.AwaitMessage(initConn, ipc.CONTAINER_STARTED); err != nil {
+	if err := ipc.AwaitMessage(initConn, ipc.CONTAINER_BOOTED); err != nil {
 		return err
 	}
 
 	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
-	}).Debug("container successfully started")
+	}).Debug("container booted")
 
 	initConn.Close()
 	initListener.Close()
@@ -259,7 +259,7 @@ func Create(rootDir string, opts CreateOpts) error {
 
 	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
-	}).Info("ok")
+	}).Info("container created")
 
 	return nil
 }

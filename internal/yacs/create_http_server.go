@@ -47,7 +47,7 @@ func (y *Yacs) CreateHttpServer(logger *logrus.Entry) {
 	})
 
 	http.HandleFunc("/logs", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, y.ContainerLogFile)
+		http.ServeFile(w, r, y.ContainerLogFilePath)
 	})
 
 	listener, err := net.Listen("unix", y.SocketPath())
