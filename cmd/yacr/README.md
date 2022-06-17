@@ -20,7 +20,7 @@ First, we need an OCI bundle, which we can create using `docker` and `runc`:
 $ make alpine_bundle
 ```
 
-> Note: we pass `--rootless` to `runc spec` to generate a configuration for "rootless containers". Under the hood, this creates some [user namespace mappings][].
+**Note:** we pass `--rootless` to `runc spec` to generate a configuration for "rootless containers". Under the hood, this creates some [user namespace mappings][].
 
 Edit the `config.json` file to set `process.terminal` to `false` and update the `process.args` to execute `/bin/sleep 1000`:
 
@@ -53,7 +53,7 @@ ERRO[0000] container: failed to mount filesystem         destination=/tmp/alpine
 INFO[0000] create: ok                                    id=test-id
 ```
 
-> Note: you can ignore the error about `cgroup` because `yacr` doesn't support cgroups (yet).
+**Note:** you can ignore the error about `cgroup` because `yacr` doesn't support cgroups (yet).
 
 Creating a container should not execute its process right away. Instead, it should spawn a new containerized process and wait for the "start" command. We can check the containers managed with `yacr` by running `yacr list`:
 
@@ -177,7 +177,7 @@ We can then use Docker as usual:
 $ ./scripts/docker run --rm -it busybox:latest /bin/sh
 Unable to find image 'busybox:latest' locally
 latest: Pulling from library/busybox
-cecc78ee4075: Pull complete 
+cecc78ee4075: Pull complete
 Digest: sha256:de56395ae0788e364797f0c60464d4693c43c33cc04ec26fc3b0931b2e7c9d7d
 Status: Downloaded newer image for busybox:latest
 / # ps
@@ -194,7 +194,7 @@ round-trip min/avg/max = 6.093/6.093/6.093 ms
 / #
 ```
 
-> Note: `docker exec` does not work currently.
+**Note:** `docker exec` does not work currently.
 
 ## Getting started with containerd
 

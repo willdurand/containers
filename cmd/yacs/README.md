@@ -124,7 +124,7 @@ $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim
 }
 ```
 
-> Note: [`jq`][jq] was used to pretty-print the JSON responses in the different examples.
+**Note:** [`jq`][jq] was used to pretty-print the JSON responses in the different examples.
 
 The container is now running, which we can confirm with `yacr list` and `ps`:
 
