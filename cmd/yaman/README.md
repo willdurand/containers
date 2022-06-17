@@ -15,7 +15,7 @@ Manage OCI images.
 #### `yaman image pull`
 
 ```
-$ yaman image pull docker.io/library/hello-world
+$ sudo yaman image pull docker.io/library/hello-world
 downloaded docker.io/library/hello-world:latest
 ```
 
@@ -35,6 +35,8 @@ Alias: `yaman c`
 #### `yaman container run`
 
 **Note:** Yaman uses fully qualified image names although it currently only supports images listed on the Docker registry.
+
+This is a simple example:
 
 ```
 $ sudo yaman c run docker.io/library/hello-world
@@ -79,8 +81,7 @@ hello
 Create an interactive container (that keeps `stdin` open) with `--interactive` (short version: `-i`):
 
 ```
-$ echo 'hello there' | sudo yaman c run --interactive docker.io/library/alpine --
-cat
+$ echo 'hello there' | sudo yaman c run --interactive docker.io/library/alpine -- cat
 hello there
 ^C
 
