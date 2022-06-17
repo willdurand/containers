@@ -50,6 +50,12 @@ alpine_bundle: ## create a rootless bundle (for testing purposes)
 	yacr spec --bundle /tmp/alpine-bundle
 .PHONY: alpine_bundle
 
+hello_world_image:
+	cd extra/docker/hello-world/ && \
+	zig cc -target x86_64-linux-musl -static hello.c -o hello && \
+	docker build -t willdurand/hello-world .
+.PHONY: hello_world_image
+
 help: ## show this help message
 help:
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
