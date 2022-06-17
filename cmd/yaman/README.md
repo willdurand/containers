@@ -12,6 +12,8 @@ Yaman is a daemon-less container manager inspired by [Docker][] and [Podman][].
 
 Manage OCI images.
 
+Alias: `yaman i`
+
 #### `yaman image pull`
 
 ```
@@ -30,13 +32,15 @@ library/redis         latest      2022-06-13T20:08:18Z   10 minutes ago   docker
 
 ### `yaman container`
 
+Manage containers.
+
 Alias: `yaman c`
 
 #### `yaman container run`
 
 **Note:** Yaman uses fully qualified image names although it currently only supports images listed on the Docker registry.
 
-This is a simple example:
+This is a simple example with Docker's [hello-world][hello-world-docker]:
 
 ```
 $ sudo yaman c run docker.io/library/hello-world
@@ -338,5 +342,49 @@ CONTAINER ID                       IMAGE                             COMMAND    
 $ sudo yaman c delete 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
+## Example with `runc`
+
+Yaman uses the [yacs](../yacs/README.md) shim under the hood, which should be able to interact with an OCI-compliant runtime even though the default runtime is [yacr](../yacr/README.md). We can pass the `--runtime` option to `yaman container run` in order to use a different OCI runtime.
+
+This is an example with `runc`:
+
+```
+$ sudo yaman c run --rm -it --runtime=runc docker.io/library/alpine sh
+/ # hostname
+af5479f3265a49f78569b8b65c7d1412
+```
+
+In a different terminal, we can query `runc` manually and see the container above listed:
+
+```
+$ sudo runc list
+ID                                 PID         STATUS    BUNDLE                                                   CREATED                          OWNER
+af5479f3265a49f78569b8b65c7d1412   3394        running   /tmp/yaman/containers/af5479f3265a49f78569b8b65c7d1412   2022-06-17T20:06:38.326130089Z   root
+```
+
+`runc` being the reference implementation and a production-ready tool, it has more features. For example, we can `exec` an existing container:
+
+```
+$ sudo runc exec -t af5479f3265a49f78569b8b65c7d1412 sh
+/ # echo "hello" > /some-file
+/ #
+```
+
+If we go back to the terminal where `yaman` is running, we should be able to see the newly created file and output its content:
+
+```
+$ sudo yaman c run --rm -it --runtime=runc docker.io/library/alpine sh
+/ # hostname
+af5479f3265a49f78569b8b65c7d1412
+/ # ls
+bin        home       mnt        root       some-file  tmp
+dev        lib        opt        run        srv        usr
+etc        media      proc       sbin       sys        var
+/ # cat some-file
+hello
+/ #
+```
+
 [docker]: https://docs.docker.com/reference/
 [podman]: https://docs.podman.io/en/latest/
+[hello-world-docker]: https://hub.docker.com/_/hello-world
