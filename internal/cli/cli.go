@@ -27,7 +27,6 @@ func NewRootCommand(programName, shortDescription string) *cobra.Command {
 			HiddenDefaultCmd:    true,
 			DisableDescriptions: true,
 		},
-		SilenceErrors:     true,
 		PersistentPreRunE: makeRootPreRunE(programName),
 	}
 
@@ -41,14 +40,20 @@ func NewRootCommand(programName, shortDescription string) *cobra.Command {
 }
 
 func Execute(cmd *cobra.Command) {
-	if err := cmd.Execute(); err != nil {
-		logrus.Error(err)
+	cmd.Execute()
+}
 
-		if !logToStderr() {
-			PrintUserError(err)
+func HandleErrors(f func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		if err := f(cmd, args); err != nil {
+			logrus.Error(err)
+
+			if !logToStderr() {
+				PrintUserError(err)
+			}
+
+			os.Exit(1)
 		}
-
-		os.Exit(1)
 	}
 }
 

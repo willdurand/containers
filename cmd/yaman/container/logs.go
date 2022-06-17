@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 )
 
@@ -11,8 +12,7 @@ func init() {
 	cmd := &cobra.Command{
 		Use:               "logs <container>",
 		Short:             "Fetch the logs of a container",
-		RunE:              logs,
-		SilenceUsage:      true,
+		Run:               cli.HandleErrors(logs),
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completeContainerIds,
 	}

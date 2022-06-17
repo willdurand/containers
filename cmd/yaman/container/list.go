@@ -6,15 +6,17 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 )
 
 func init() {
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List containers",
-		RunE:  list,
-		Args:  cobra.NoArgs,
+		Use:     "list",
+		Short:   "List containers",
+		Aliases: []string{"ls"},
+		Run:     cli.HandleErrors(list),
+		Args:    cobra.NoArgs,
 	}
 	cmd.Flags().BoolP("all", "a", false, "show all containers and not just those running")
 	containerCommand.AddCommand(cmd)

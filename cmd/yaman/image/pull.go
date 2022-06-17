@@ -4,17 +4,17 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman/image"
 	"github.com/willdurand/containers/internal/yaman/registry"
 )
 
 func init() {
 	cmd := &cobra.Command{
-		Use:          "pull <image>",
-		Short:        "Pull an image from a registry",
-		RunE:         pull,
-		SilenceUsage: true,
-		Args:         cobra.ExactArgs(1),
+		Use:   "pull <image>",
+		Short: "Pull an image from a registry",
+		Run:   cli.HandleErrors(pull),
+		Args:  cobra.ExactArgs(1),
 	}
 	imageCommand.AddCommand(cmd)
 }

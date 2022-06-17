@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 )
 
@@ -9,8 +10,7 @@ func init() {
 	cmd := &cobra.Command{
 		Use:               "stop <container>",
 		Short:             "Stop a container",
-		RunE:              stop,
-		SilenceUsage:      true,
+		Run:               cli.HandleErrors(stop),
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: completeContainerIds,
 	}

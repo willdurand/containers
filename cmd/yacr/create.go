@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yacr"
 )
 
 func init() {
 	cmd := &cobra.Command{
-		Use:          "create <id>",
-		Short:        "Create a container",
-		SilenceUsage: true,
-		RunE:         create,
-		Args:         cobra.ExactArgs(1),
+		Use:   "create <id>",
+		Short: "Create a container",
+		Run:   cli.HandleErrors(create),
+		Args:  cobra.ExactArgs(1),
 	}
 	cmd.PersistentFlags().StringP("bundle", "b", "", "path to the root of the bundle directory")
 	cmd.MarkFlagRequired("bundle")
@@ -23,11 +23,10 @@ func init() {
 	rootCmd.AddCommand(cmd)
 
 	containerCmd := &cobra.Command{
-		Use:          "container <id>",
-		SilenceUsage: true,
-		RunE:         createContainer,
-		Hidden:       true,
-		Args:         cobra.ExactArgs(1),
+		Use:    "container <id>",
+		Run:    cli.HandleErrors(createContainer),
+		Hidden: true,
+		Args:   cobra.ExactArgs(1),
 	}
 	containerCmd.Flags().Bool("no-pivot", false, "do not use pivot root to jail process inside rootfs")
 	cmd.AddCommand(containerCmd)

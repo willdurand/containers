@@ -23,7 +23,7 @@ var shimCmd = cli.NewRootCommand(
 
 func init() {
 	// We want to execute a function by default.
-	shimCmd.RunE = run
+	shimCmd.Run = cli.HandleErrors(run)
 	shimCmd.Args = cobra.NoArgs
 
 	shimCmd.Flags().StringP("bundle", "b", "", "path to the root of the bundle directory")
