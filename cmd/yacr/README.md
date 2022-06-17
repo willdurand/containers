@@ -14,43 +14,16 @@ This runtime is known to be unsafe because:
 
 **👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
-First, we need an OCI bundle, which we can create using `docker` and `runc`:
+First, we need an OCI bundle, which we can create using `docker` and an OCI runtime like `runc` or `yacr`. It isn't super complicated but, to save some time, this project has a `Makefile` with a command to generate a valid bundle in `/tmp`:
 
 ```
 $ make alpine_bundle
-```
-
-**Note:** we pass `--rootless` to `runc spec` to generate a configuration for "rootless containers". Under the hood, this creates some [user namespace mappings][].
-
-Edit the `config.json` file to set `process.terminal` to `false` and update the `process.args` to execute `/bin/sleep 1000`:
-
-```diff
---- a/config.json
-+++ b/config.json
-
- {
-        "ociVersion": "1.0.2-dev",
-        "process": {
--               "terminal": true,
-+               "terminal": false,
-                "user": {
-                        "uid": 0,
-                        "gid": 0
-                },
-                "args": [
--                       "sh"
-+                       "/bin/sleep", "1000"
-                ],
-                "env": [
-                        "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 ```
 
 Now we can use `yacr create` to create a new container. We need to pass a container ID and the path to the bundle we made previously. In order to create a "rootless container", we need to specify a root directory (i.e. the location used by `yacr` to write its data) that is accessible by the current user. If you don't have the `XDG_RUNTIME_DIR` environment variable configured on your system (see: [XDG Base Directory][]), you'll have to specify the root directory (e.g. `--root /tmp/yacr`).
 
 ```
 $ yacr create test-id --bundle /tmp/alpine-bundle
-ERRO[0000] container: failed to mount filesystem         destination=/tmp/alpine-bundle/rootfs/sys/fs/cgroup error="operation not permitted" id=test-id options="[nosuid noexec nodev relatime ro]" source=cgroup type=cgroup
-INFO[0000] create: ok                                    id=test-id
 ```
 
 **Note:** you can ignore the error about `cgroup` because `yacr` doesn't support cgroups (yet).
@@ -67,8 +40,6 @@ We can now start the container with `yacr start`:
 
 ```
 $ yacr start test-id
-INFO[0022] container: executing process                  id=test-id processArgs="[/bin/sleep 1000]"
-INFO[0000] start: (probably) ok                          id=test-id
 ```
 
 The container should now be running, which we can confirm with `yacr list` again:
@@ -94,7 +65,6 @@ Since `yacr` implements the [runtime-spec][], we can send a signal to the proces
 
 ```
 $ yacr kill test-id 9
-INFO[0000] kill: ok                                      id=test-id signal=9
 ```
 
 Let's check:
@@ -111,7 +81,6 @@ It is now safe to delete the container with `yacr delete`:
 
 ```
 $ yacr delete test-id
-INFO[0000] delete: ok                                    id=test-id
 ```
 
 At this point, `yacr list` should not list the container with ID `test-id` anymore either.
@@ -131,14 +100,12 @@ In another terminal, let's get back to the `/tmp/alpine-bundle` directory and cr
 
 ```
 $ yacr create test-id --bundle . --console-socket /tmp/console.sock
-INFO[0000] create: ok                                    id=test-id
 ```
 
 When we start the container, the runtime will return immediately:
 
 ```
 $ yacr start test-id
-INFO[0000] start: (probably) ok                          id=test-id
 ```
 
 In the terminal executing `recvtty`, we should now see `sh` running in the container:
