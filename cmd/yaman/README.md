@@ -40,31 +40,33 @@ Alias: `yaman c`
 
 **Note:** Yaman uses fully qualified image names although it currently only supports images listed on the Docker registry.
 
-This is a simple example with Docker's [hello-world][hello-world-docker]:
+Let's run the image named [`docker.io/willdurand/hello-world`][hello-world]. This is a simple example inspired by Docker's [hello-world][hello-world-docker].
 
 ```
-$ sudo yaman c run docker.io/library/hello-world
+$ sudo yaman c run docker.io/willdurand/hello-world
 
-Hello from Docker!
-This message shows that your installation appears to be working correctly.
+Hello from @willdurand!
 
-To generate this message, Docker took the following steps:
- 1. The Docker client contacted the Docker daemon.
- 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
-    (amd64)
- 3. The Docker daemon created a new container from that image which runs the
-    executable that produces the output you are currently reading.
- 4. The Docker daemon streamed that output to the Docker client, which sent it
-    to your terminal.
+This message shows that your installation appears to be working correctly
+(but that might be a lie because this is bleeding edge technology).
 
-To try something more ambitious, you can run an Ubuntu container with:
- $ docker run -it ubuntu bash
+To generate this message, Yaman took the following steps:
+ 1. Yaman pulled the "willdurand/hello-world" image from the Docker Hub.
+ 2. Yaman created a new container from that image which runs the executable
+    that produces the output you are currently reading. Under the hood,
+    a "shim" named Yacs has been executed. This is the tool responsible
+    for monitoring the container (which was created by a third tool: Yacr,
+    an "OCI runtime").
+ 3. Yaman connected to the container output (via the shim), which sent it
+    to your terminal. Amazing, right?
 
-Share images, automate workflows, and more with a free Docker ID:
- https://hub.docker.com/
+To try something more ambitious, you can run an Alpine container with:
+ $ sudo yaman c run -it docker.io/library/alpine sh
+
+That's basically it because this is a learning project :D
 
 For more examples and ideas, visit:
- https://docs.docker.com/get-started/
+ https://github.com/willdurand/containers
 
 ```
 
@@ -386,5 +388,6 @@ hello
 ```
 
 [docker]: https://docs.docker.com/reference/
-[podman]: https://docs.podman.io/en/latest/
 [hello-world-docker]: https://hub.docker.com/_/hello-world
+[hello-world]: https://hub.docker.com/r/willdurand/hello-world
+[podman]: https://docs.podman.io/en/latest/
