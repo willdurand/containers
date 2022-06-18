@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 
 	"github.com/sirupsen/logrus"
@@ -250,6 +251,11 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 		return fmt.Errorf("failed to set hostname: %w", err)
 	}
 
+	// Avoid leaked file descriptors.
+	if err := closeExecFrom(3); err != nil {
+		return fmt.Errorf("failed to close exec fds: %w", err)
+	}
+
 	// At this point, the container has been created and when the host receives
 	// the message below, it will exits (success).
 	if err := ipc.SendMessage(conn, ipc.CONTAINER_WAIT_START); err != nil {
@@ -296,6 +302,30 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 
 	if err := syscall.Exec(argv0, process.Args, process.Env); err != nil {
 		return fmt.Errorf("failed to exec %v: %w", process.Args, err)
+	}
+
+	return nil
+}
+
+func closeExecFrom(minFd int) error {
+	fdDir, err := os.Open("/proc/self/fd")
+	if err != nil {
+		return err
+	}
+	defer fdDir.Close()
+
+	names, err := fdDir.Readdirnames(-1)
+	if err != nil {
+		return err
+	}
+
+	for _, name := range names {
+		fd, err := strconv.Atoi(name)
+		if err != nil || fd < minFd {
+			continue
+		}
+
+		unix.CloseOnExec(fd)
 	}
 
 	return nil
