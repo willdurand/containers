@@ -17,11 +17,12 @@ import (
 )
 
 type ContainerOpts struct {
-	Name     string
-	Command  []string
-	Remove   bool
-	Hostname string
-	Tty      bool
+	Name        string
+	Command     []string
+	Remove      bool
+	Hostname    string
+	Interactive bool
+	Tty         bool
 }
 
 type Container struct {
