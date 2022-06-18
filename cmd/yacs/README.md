@@ -326,6 +326,34 @@ $ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http
 BYE
 ```
 
+## Advanced usage
+
+Yacs has many configuration flags (options). This section describes some of them.
+
+### `--container-log-file`
+
+Yacs uses this log file to write the standard output (and error) of the container process. Each line is appended to the log file as a JSON object (also described in a previous section above):
+
+``` json
+{"m":"[Sun Jun 12 11:51:44 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:44.947554491Z"}
+```
+
+### `--exit-command`
+
+When the container process exits, Yacs will call an "exit command" when `--exit-command` is specified. It is also possible to specify command arguments with `--exit-command-arg`.
+
+This can be useful for daemon-less container managers (e.g., [Yaman][] configures Yacs to call `yaman container cleanup` when a container process exits so that (1) Yaman is notified of this event and (2) it can perform some clean-up tasks).
+
+### `--runtime`
+
+The OCI runtime to use. By default, [Yacr][] will be used.
+
+### `--stdio-dir`
+
+This is the directory where Yacs will create the FIFOs (stdio named pipes).
+
 [jq]: https://stedolan.github.io/jq/
 [runc]: https://github.com/opencontainers/runc/
 [ttrpc]: https://github.com/containerd/ttrpc
+[yacr]: ../yacr/README.md
+[yaman]: ../yaman/README.md
