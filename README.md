@@ -23,6 +23,16 @@ $ make all
 $ sudo make install
 ```
 
+### Vagrant
+
+This project can be used with [Vagrant][] to set up a Linux virtual machine. This is recommended as opposed to trying out the different tools on your actual Linux system.
+
+```
+$ vagrant up && vagrant ssh
+```
+
+From there, you can `cd /vagrant` and follow the instruction to build the project (previous section).
+
 ### bash auto-completion on Linux
 
 You can also enable completion for `yacr` and `yaman`.
