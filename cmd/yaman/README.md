@@ -322,6 +322,47 @@ CONTAINER ID                       IMAGE                             COMMAND    
 $ sudo yaman c delete 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
+#### `yaman container attach`
+
+``` console
+$ sudo yaman c run -d --rm docker.io/library/alpine -- top -b
+4bd06a2046e44e1d96c636c7ecae62d4
+
+$ sudo yaman c attach 4bd06a2046e44e1d96c636c7ecae62d4
+Mem: 719244K used, 280824K free, 12244K shrd, 28092K buff, 407436K cached
+CPU:   0% usr   0% sys   0% nic  95% idle   0% io   0% irq   4% sirq
+Load average: 0.17 0.07 0.07 2/177 5
+  PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+    1     0 root     R     1596   0%   0   0% top -b
+Mem: 719204K used, 280864K free, 12268K shrd, 28100K buff, 407620K cached
+CPU:   0% usr   0% sys   0% nic  99% idle   0% io   0% irq   0% sirq
+Load average: 0.16 0.07 0.07 1/177 5
+  PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+    1     0 root     R     1596   0%   0   0% top -b
+Mem: 719724K used, 280344K free, 12268K shrd, 28108K buff, 407620K cached
+CPU:   0% usr   0% sys   0% nic  99% idle   0% io   0% irq   0% sirq
+Load average: 0.15 0.07 0.07 2/183 5
+  PID  PPID USER     STAT   VSZ %VSZ CPU %CPU COMMAND
+    1     0 root     R     1596   0%   0   0% top -b
+^C
+```
+
+**Note:** the container is not stopped when we leave the attached container. This is a known limitation due to the fact that Yaman does not proxy the signals to the container process.
+
+We can also attach a container that was created with a terminal (PTY):
+
+``` console
+$ sudo yaman c run -it -d --rm docker.io/library/alpine -- sh
+a932b1afa47341d183abf16d36aa33dd
+
+$ sudo yaman c attach a932b1afa47341d183abf16d36aa33dd
+/ #
+```
+
+Exiting this "attach session" will terminate the container process.
+
+**Note:** there is currently no way to detach from the "attach session" and keep the container running. This would require a special key sequence (like Docker's `--detach-keys`).
+
 ### `yaman image`
 
 Manage OCI images.

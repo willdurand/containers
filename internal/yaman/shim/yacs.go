@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
@@ -23,6 +24,7 @@ import (
 	"github.com/willdurand/containers/internal/constants"
 	"github.com/willdurand/containers/internal/yacs"
 	"github.com/willdurand/containers/internal/yaman/container"
+	"golang.org/x/term"
 )
 
 // Yacs represents an instance of the `yacs` shim.
@@ -363,6 +365,61 @@ func (s *Yacs) OpenStreams() (*os.File, *os.File, *os.File, error) {
 	}
 
 	return stdin, stdout, stderr, nil
+}
+
+// Attach attaches the provided Input/Output streams to the container.
+func (s *Yacs) Attach(sin, sout, serr *os.File) error {
+	stdin, stdout, stderr, err := s.OpenStreams()
+	if err != nil {
+		return err
+	}
+	defer stdin.Close()
+	defer stdout.Close()
+	defer stderr.Close()
+
+	// In interactive mode, we keep `stdin` open, otherwise we close it
+	// immediately and only care about `stdout` and `stderr`.
+	if s.Container.Opts.Interactive {
+		go io.Copy(stdin, sin)
+	} else {
+		stdin.Close()
+	}
+
+	if s.Container.Opts.Tty {
+		// TODO: maybe handle the case where we want to detach from the container
+		// without killing it. Docker has a special key sequence for detaching a
+		// container.
+
+		// We force the current terminal to switch to "raw mode" because we don't
+		// want it to mess with the PTY set up by the container itself.
+		oldState, err := term.MakeRaw(int(sin.Fd()))
+		if err != nil {
+			return err
+		}
+		defer term.Restore(int(sin.Fd()), oldState)
+
+		go io.Copy(stdin, sin)
+		// Block on the stream coming from the container so that when it exits, we
+		// can also exit this command.
+		io.Copy(sout, stdout)
+	} else {
+		// TODO: proxy all received signals to the container process and maybe add
+		// an option like Docker's `--sig-proxy` one.
+
+		var wg sync.WaitGroup
+		// We copy the data from the container to the appropriate streams as long
+		// as we can. When the container process exits, the shimm should close the
+		// streams on its end, which should allow `copyStd()` to complete.
+		wg.Add(1)
+		go copyStd(stdout, sout, &wg)
+
+		wg.Add(1)
+		go copyStd(stderr, serr, &wg)
+
+		wg.Wait()
+	}
+
+	return nil
 }
 
 func (s *Yacs) sendCommand(values url.Values) error {
