@@ -23,6 +23,20 @@ $ make all
 $ sudo make install
 ```
 
+### bash auto-completion on Linux
+
+You can also enable completion for `yacr` and `yaman`.
+
+You must have the `bash-completion` package installed first and you should possibly source `/usr/share/bash-completion/bash_completion` in your bash configuration (`~/.bashrc`). When `type _init_completion` in your shell returns some content, you're all set.
+
+You can now install the completion files:
+
+```
+$ sudo make install_completion
+```
+
+After reloading your shell, `yacr` and `yaman` autocompletion should be working.
+
 ## License
 
 See [`LICENSE.txt`](./LICENSE.txt)

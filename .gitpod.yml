@@ -14,4 +14,4 @@ tasks:
 
       # Build and install the different tools
       make all && sudo make install && sudo make install_completion
-      source /etc/bash_completion
+      source /usr/share/bash-completion/bash_completion
