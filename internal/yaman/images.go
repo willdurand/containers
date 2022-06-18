@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -102,6 +103,10 @@ func ListImages(rootDir string) (ImageList, error) {
 			}
 		}
 	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[j].Pulled.Before(list[i].Pulled)
+	})
 
 	return list, nil
 }
