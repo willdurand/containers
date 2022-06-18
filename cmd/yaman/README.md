@@ -8,28 +8,6 @@ Yaman is a daemon-less container manager inspired by [Docker][] and [Podman][].
 
 ⚠️ You must have "root" privileges to use `yaman` because the tool needs to mount the "rootfs" of a container as an Overlay FS. You can use `sudo yaman` as shown in the next sections.
 
-### `yaman image`
-
-Manage OCI images.
-
-Alias: `yaman i`
-
-#### `yaman image pull`
-
-```
-$ sudo yaman image pull docker.io/library/hello-world
-downloaded docker.io/library/hello-world:latest
-```
-
-#### `yaman image list`
-
-```
-$ sudo yaman image list
-NAME                  TAG         CREATED                PULLED           REGISTRY
-library/hello-world   latest      2021-09-23T23:47:57Z   12 minutes ago   docker.io
-library/redis         latest      2022-06-13T20:08:18Z   10 minutes ago   docker.io
-```
-
 ### `yaman container`
 
 Manage containers.
@@ -42,7 +20,7 @@ Alias: `yaman c`
 
 Let's run the image named [`docker.io/willdurand/hello-world`][hello-world]. This is a simple example inspired by Docker's [hello-world][hello-world-docker].
 
-```
+``` console
 $ sudo yaman c run docker.io/willdurand/hello-world
 
 Hello from @willdurand!
@@ -72,21 +50,21 @@ For more examples and ideas, visit:
 
 Run a container in the background with `--detach` (short version: `-d`):
 
-```
+``` console
 $ sudo yaman c run -d docker.io/library/alpine:latest sleep 1000
 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
 Change the container's hostname with `--hostname`:
 
-```
+``` console
 $ sudo yaman c run --hostname="hello" docker.io/library/alpine:latest -- hostname
 hello
 ```
 
 Create an interactive container (that keeps `stdin` open) with `--interactive` (short version: `-i`):
 
-```
+``` console
 $ echo 'hello there' | sudo yaman c run --interactive docker.io/library/alpine -- cat
 hello there
 ^C
@@ -98,7 +76,7 @@ CONTAINER ID                       IMAGE                             COMMAND   S
 
 Spawn an interactive shell with both `-i` and `--tty` (short version: `-t`):
 
-```
+``` console
 $ sudo yaman c run -it docker.io/library/alpine sh
 / # id
 uid=0(root) gid=0(root) groups=0(root)
@@ -110,7 +88,7 @@ uid=0(root) gid=0(root) groups=0(root)
 
 #### `yaman container inspect`
 
-```
+``` console
 $ sudo yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
@@ -324,7 +302,7 @@ $ sudo yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
 
 #### `yaman container stop`
 
-```
+``` console
 $ sudo yaman c stop 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
@@ -332,7 +310,7 @@ $ sudo yaman c stop 2be09afa2b3b47c2a9975017aa2913fc
 
 List all containers and not only those currently running:
 
-```
+``` console
 $ sudo yaman c list --all
 CONTAINER ID                       IMAGE                             COMMAND    STATUS                          NAME
 1234e4a90ed042dc96b1a6f80417b75a   docker.io/library/alpine:latest   hostname   Exited (0) About a minute ago   great_hermann
@@ -340,8 +318,30 @@ CONTAINER ID                       IMAGE                             COMMAND    
 
 #### `yaman container delete`
 
-```
+``` console
 $ sudo yaman c delete 2be09afa2b3b47c2a9975017aa2913fc
+```
+
+### `yaman image`
+
+Manage OCI images.
+
+Alias: `yaman i`
+
+#### `yaman image pull`
+
+``` console
+$ sudo yaman image pull docker.io/library/hello-world
+downloaded docker.io/library/hello-world:latest
+```
+
+#### `yaman image list`
+
+``` console
+$ sudo yaman image list
+NAME                  TAG         CREATED                PULLED           REGISTRY
+library/hello-world   latest      2021-09-23T23:47:57Z   12 minutes ago   docker.io
+library/redis         latest      2022-06-13T20:08:18Z   10 minutes ago   docker.io
 ```
 
 ## Example with `runc`
@@ -350,7 +350,7 @@ Yaman uses the [yacs](../yacs/README.md) shim under the hood, which should be ab
 
 This is an example with `runc`:
 
-```
+``` console
 $ sudo yaman c run --rm -it --runtime=runc docker.io/library/alpine sh
 / # hostname
 af5479f3265a49f78569b8b65c7d1412
@@ -358,7 +358,7 @@ af5479f3265a49f78569b8b65c7d1412
 
 In a different terminal, we can query `runc` manually and see the container above listed:
 
-```
+``` console
 $ sudo runc list
 ID                                 PID         STATUS    BUNDLE                                                   CREATED                          OWNER
 af5479f3265a49f78569b8b65c7d1412   3394        running   /tmp/yaman/containers/af5479f3265a49f78569b8b65c7d1412   2022-06-17T20:06:38.326130089Z   root
@@ -366,7 +366,7 @@ af5479f3265a49f78569b8b65c7d1412   3394        running   /tmp/yaman/containers/a
 
 `runc` being the reference implementation and a production-ready tool, it has more features. For example, we can `exec` an existing container:
 
-```
+``` console
 $ sudo runc exec -t af5479f3265a49f78569b8b65c7d1412 sh
 / # echo "hello" > /some-file
 / #
@@ -374,7 +374,7 @@ $ sudo runc exec -t af5479f3265a49f78569b8b65c7d1412 sh
 
 If we go back to the terminal where `yaman` is running, we should be able to see the newly created file and output its content:
 
-```
+``` console
 $ sudo yaman c run --rm -it --runtime=runc docker.io/library/alpine sh
 / # hostname
 af5479f3265a49f78569b8b65c7d1412

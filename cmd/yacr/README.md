@@ -16,13 +16,13 @@ This runtime is known to be unsafe because:
 
 First, we need an OCI bundle, which we can create using `docker` and an OCI runtime like `runc` or `yacr`. It isn't super complicated but, to save some time, this project has a `Makefile` with a command to generate a valid bundle in `/tmp`:
 
-```
+``` console
 $ make alpine_bundle
 ```
 
 Now we can use `yacr create` to create a new container. We need to pass a container ID and the path to the bundle we made previously. In order to create a "rootless container", we need to specify a root directory (i.e. the location used by `yacr` to write its data) that is accessible by the current user. If you don't have the `XDG_RUNTIME_DIR` environment variable configured on your system (see: [XDG Base Directory][]), you'll have to specify the root directory (e.g. `--root /tmp/yacr`).
 
-```
+``` console
 $ yacr create test-id --bundle /tmp/alpine-bundle
 ```
 
@@ -30,7 +30,7 @@ $ yacr create test-id --bundle /tmp/alpine-bundle
 
 Creating a container should not execute its process right away. Instead, it should spawn a new containerized process and wait for the "start" command. We can check the containers managed with `yacr` by running `yacr list`:
 
-```
+``` console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 test-id     created     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
@@ -38,13 +38,13 @@ test-id     created     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
 
 We can now start the container with `yacr start`:
 
-```
+``` console
 $ yacr start test-id
 ```
 
 The container should now be running, which we can confirm with `yacr list` again:
 
-```
+``` console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 test-id     running     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
@@ -52,7 +52,7 @@ test-id     running     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
 
 We should also see our process running on the host machine with `ps`:
 
-```
+``` console
 $ ps auxf
 USER      PID     %CPU %MEM  VSZ    RSS TTY      STAT START   TIME COMMAND
 [...]
@@ -63,13 +63,13 @@ The PID reported by `yacr list` matches the `ps` output above. The owner of the 
 
 Since `yacr` implements the [runtime-spec][], we can send a signal to the process with `yacr kill`:
 
-```
+``` console
 $ yacr kill test-id 9
 ```
 
 Let's check:
 
-```
+``` console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 test-id     stopped     2022-05-30T22:00:00Z   0           /tmp/alpine-bundle
@@ -79,7 +79,7 @@ The container has been stopped because we sent the `SIGKILL` signal. It shouldn'
 
 It is now safe to delete the container with `yacr delete`:
 
-```
+``` console
 $ yacr delete test-id
 ```
 
@@ -91,26 +91,26 @@ In the previous section, the `config.json` has been edited to disable the `termi
 
 First, we need a receiver terminal. We will use [`recvtty`][recvtty] from the [runc][] repository:
 
-```
+``` console
 $ go install github.com/opencontainers/runc/contrib/cmd/recvtty@latest
 $ recvtty /tmp/console.sock
 ```
 
 In another terminal, let's get back to the `/tmp/alpine-bundle` directory and create the container with the `--console-socket` option:
 
-```
+``` console
 $ yacr create test-id --bundle . --console-socket /tmp/console.sock
 ```
 
 When we start the container, the runtime will return immediately:
 
-```
+``` console
 $ yacr start test-id
 ```
 
 In the terminal executing `recvtty`, we should now see `sh` running in the container:
 
-```
+``` console
 / # ps
 ps
 PID   USER     TIME  COMMAND
@@ -124,13 +124,13 @@ PID   USER     TIME  COMMAND
 
 Let's create a new Docker daemon with the `yacr` runtime:
 
-```
+``` console
 $ ./scripts/run-dockerd
 ```
 
 In another terminal, you can connect to this daemon by running `docker` with `-H unix:///tmp/d2/d2.socket` or use the `./scripts/docker` wrapper in this repository:
 
-```
+``` console
 $ ./scripts/docker info
 [...]
  Runtimes: gitpod io.containerd.runc.v2 io.containerd.runtime.v1.linux runc yacr
@@ -140,7 +140,7 @@ $ ./scripts/docker info
 
 We can then use Docker as usual:
 
-```
+``` console
 $ ./scripts/docker run --rm -it busybox:latest /bin/sh
 Unable to find image 'busybox:latest' locally
 latest: Pulling from library/busybox
@@ -169,26 +169,26 @@ round-trip min/avg/max = 6.093/6.093/6.093 ms
 
 First, [install `containerd`][install-containerd], then run `containerd` with elevated privileges:
 
-```
+``` console
 $ sudo containerd
 ```
 
 In order to run containers with the `yacr` runtime, we need an image first:
 
-```
+``` console
 $ sudo ctr images pull docker.io/library/alpine:latest
 ```
 
 We can now run a new container with our runtime by specifying its path with `--runc-binary` (we'll use the default "runc shim"). On Gitpod, we should also pass `--snapshotter=native` to `ctr run`. The command below will spawn an interactive shell in our container thanks to the `--tty` option:
 
-```
+``` console
 $ sudo ctr run --runc-binary=/workspace/containers/bin/yacr --snapshotter=native --tty docker.io/library/alpine:latest alpine-1 /bin/sh
 / #
 ```
 
 In a different terminal, we can see list the containers with `yacr list`:
 
-```
+``` console
 $ sudo ./bin/yacr --root /run/containerd/runc/default list
 ID          STATUS      CREATED                PID         BUNDLE
 alpine-1    running     2022-05-30T22:00:00Z   18166       /run/containerd/io.containerd.runtime.v2.task/default/alpine-1
