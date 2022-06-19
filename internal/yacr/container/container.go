@@ -200,6 +200,7 @@ func (c *BaseContainer) ExecuteHooks(name string) error {
 	logrus.WithFields(logrus.Fields{
 		"id":    c.ID(),
 		"name:": name,
+		"state": c.state,
 		"hooks": hooks,
 	}).Debug("executing hooks")
 
@@ -253,8 +254,11 @@ func (c *ContainerState) Save() error {
 	return nil
 }
 
-func (c *ContainerState) SaveAsCreated(pid int) error {
+func (c *ContainerState) SetPid(pid int) {
 	c.state.Pid = pid
+}
+
+func (c *ContainerState) SaveAsCreated() error {
 	return c.UpdateStatus(constants.StateCreated)
 }
 

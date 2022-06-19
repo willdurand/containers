@@ -225,6 +225,16 @@ func Create(rootDir string, opts CreateOpts) error {
 		return fmt.Errorf("before_pivot: %w", err)
 	}
 
+	containerPid := containerProcess.Process.Pid
+	container.SetPid(containerPid)
+
+	// Write the container PID to the pid file if supplied.
+	if opts.PidFile != "" {
+		if err := ioutil.WriteFile(opts.PidFile, []byte(strconv.FormatInt(int64(containerPid), 10)), 0o644); err != nil {
+			return fmt.Errorf("failed to write to pid file: %w", err)
+		}
+	}
+
 	// Hooks to be run after the container has been created but before
 	// `pivot_root`.
 	// See: https://github.com/opencontainers/runtime-spec/blob/27924127bf391ea7691924c6dcb01f3369d69fe2/config.md#createruntime-hooks
@@ -243,17 +253,8 @@ func Create(rootDir string, opts CreateOpts) error {
 		return err
 	}
 
-	containerPid := containerProcess.Process.Pid
-
-	// Write the container PID to the pid file if supplied.
-	if opts.PidFile != "" {
-		if err := ioutil.WriteFile(opts.PidFile, []byte(strconv.FormatInt(int64(containerPid), 10)), 0o644); err != nil {
-			return fmt.Errorf("failed to write to pid file: %w", err)
-		}
-	}
-
 	// Update state.
-	if err := container.SaveAsCreated(containerPid); err != nil {
+	if err := container.SaveAsCreated(); err != nil {
 		return err
 	}
 
