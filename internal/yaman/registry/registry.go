@@ -3,6 +3,7 @@ package registry
 import (
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,10 +17,11 @@ import (
 	"github.com/willdurand/containers/internal/yaman/image"
 )
 
-const (
-	authBaseURL  = "https://auth.docker.io"
-	indexBaseURL = "https://index.docker.io/v2"
-)
+type registryOpts struct {
+	AuthURL      string
+	Service      string
+	IndexBaseURL string
+}
 
 type token struct {
 	Token       string    `json:"token"`
@@ -28,13 +30,37 @@ type token struct {
 	IssuedAt    time.Time `json:"issued_at"`
 }
 
-type dockerClient struct {
+type registryClient struct {
 	httpClient
+
+	BaseURL string
 }
 
-func (c dockerClient) GetManifest(img *image.Image) (*imagespec.Manifest, error) {
-	resp, err := c.Get(
-		fmt.Sprintf("%s/%s/manifests/%s", indexBaseURL, img.Name, img.Version),
+func (c registryClient) GetManifest(img *image.Image) (*imagespec.Manifest, error) {
+	resp, err := c.Head(
+		fmt.Sprintf("%s/%s/manifests/%s", c.BaseURL, img.Name, img.Version),
+		map[string]string{"Accept": "application/vnd.docker.distribution.manifest.v2+json"},
+	)
+	if err != nil {
+		return nil, err
+	}
+	resp.Body.Close()
+
+	manifestDigest := resp.Header.Get("docker-content-digest")
+	if manifestDigest == "" {
+		return nil, errors.New("missing manifest digest")
+	}
+
+	switch manifestType := resp.Header.Get("content-type"); manifestType {
+	case "application/vnd.docker.distribution.manifest.v2+json":
+		break
+
+	default:
+		return nil, fmt.Errorf("unsupported manifest type: %s", manifestType)
+	}
+
+	resp, err = c.Get(
+		fmt.Sprintf("%s/%s/manifests/%s", c.BaseURL, img.Name, manifestDigest),
 		map[string]string{"Accept": "application/vnd.docker.distribution.manifest.v2+json"},
 	)
 	if err != nil {
@@ -50,9 +76,9 @@ func (c dockerClient) GetManifest(img *image.Image) (*imagespec.Manifest, error)
 	return manifest, nil
 }
 
-func (c dockerClient) GetImage(img *image.Image, manifest *imagespec.Manifest) (*imagespec.Image, error) {
+func (c registryClient) GetImage(img *image.Image, manifest *imagespec.Manifest) (*imagespec.Image, error) {
 	resp, err := c.Get(
-		fmt.Sprintf("%s/%s/blobs/%s", indexBaseURL, img.Name, manifest.Config.Digest),
+		fmt.Sprintf("%s/%s/blobs/%s", c.BaseURL, img.Name, manifest.Config.Digest),
 		map[string]string{"Accept": manifest.Config.MediaType},
 	)
 	if err != nil {
@@ -68,9 +94,9 @@ func (c dockerClient) GetImage(img *image.Image, manifest *imagespec.Manifest) (
 	return config, nil
 }
 
-func (c dockerClient) DownloadAndUnpackLayer(img *image.Image, layer imagespec.Descriptor, diffID digest.Digest) error {
+func (c registryClient) DownloadAndUnpackLayer(img *image.Image, layer imagespec.Descriptor, diffID digest.Digest) error {
 	resp, err := c.Get(
-		fmt.Sprintf("%s/%s/blobs/%s", indexBaseURL, img.Name, layer.Digest),
+		fmt.Sprintf("%s/%s/blobs/%s", c.BaseURL, img.Name, layer.Digest),
 		map[string]string{"Accept": layer.MediaType},
 	)
 	if err != nil {
@@ -102,16 +128,18 @@ func (c dockerClient) DownloadAndUnpackLayer(img *image.Image, layer imagespec.D
 	return nil
 }
 
-func PullFromDocker(img *image.Image) error {
+func PullFromRegistry(img *image.Image, opts registryOpts) error {
 	logger := logrus.WithField("image", img.FQIN())
+	logger.WithField("opts", opts).Debug("pulling from registry")
 
 	if err := os.MkdirAll(img.BlobsDir(), 0o755); err != nil {
 		return err
 	}
 
 	url := fmt.Sprintf(
-		"%s/token?service=registry.docker.io&scope=repository:%s:pull",
-		authBaseURL,
+		"%s?service=%s&scope=repository:%s:pull",
+		opts.AuthURL,
+		opts.Service,
 		img.Name,
 	)
 	resp, err := http.Get(url)
@@ -126,7 +154,7 @@ func PullFromDocker(img *image.Image) error {
 	resp.Body.Close()
 	logger.Debug("got authentication token")
 
-	c := dockerClient{newHttpClientWithAuthToken(t.Token)}
+	c := registryClient{newHttpClientWithAuthToken(t.Token), opts.IndexBaseURL}
 
 	manifest, err := c.GetManifest(img)
 	if err != nil {

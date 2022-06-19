@@ -2,6 +2,11 @@
 
 Yaman is a daemon-less container manager inspired by [Docker][] and [Podman][] that does not need `root`-like privileges.
 
+Yaman supports the following registries:
+
+- [Docker Hub](https://hub.docker.com/)
+- [Red Hat Quay](https://quay.io/)
+
 ## Commands
 
 **👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
@@ -16,7 +21,7 @@ Alias: `yaman c`
 
 #### `yaman container run`
 
-**Note:** Yaman uses fully qualified image names although it currently only supports images listed on the Docker registry.
+**Note:** Yaman requires the use of fully qualified image names.
 
 Let's run the image named [`docker.io/willdurand/hello-world`][hello-world]. This is a simple example inspired by Docker's [hello-world][hello-world-docker].
 
@@ -84,6 +89,19 @@ uid=0(root) gid=0(root) groups=0(root)
 56823f2c913b4d96a0b1b4ba6d978734
 / # ^C
 / # exit
+```
+
+Use a different registry:
+
+``` console
+$ yaman c run -it quay.io/aptible/alpine
+/ # cat /etc/alpine-release
+3.3.3
+/ # exit
+
+$ yaman c list -a
+CONTAINER ID                       IMAGE                           COMMAND   STATUS                    NAME
+b2985e49d1f34d539599bba4fc0e789d   quay.io/aptible/alpine:latest   /bin/sh   Exited (0) 1 second ago   sad_mclean
 ```
 
 #### `yaman container inspect`

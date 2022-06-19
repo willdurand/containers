@@ -17,7 +17,15 @@ func newHttpClientWithAuthToken(token string) httpClient {
 }
 
 func (c *httpClient) Get(url string, headers map[string]string) (resp *http.Response, err error) {
-	req, err := http.NewRequest("GET", url, nil)
+	return c.do("GET", url, headers)
+}
+
+func (c *httpClient) Head(url string, headers map[string]string) (resp *http.Response, err error) {
+	return c.do("HEAD", url, headers)
+}
+
+func (c *httpClient) do(method, url string, headers map[string]string) (resp *http.Response, err error) {
+	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, err
 	}
