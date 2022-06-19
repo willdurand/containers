@@ -1,7 +1,7 @@
 package image
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/internal/cli"
@@ -29,12 +29,11 @@ func pull(cmd *cobra.Command, args []string) error {
 
 	opts := registry.PullOpts{
 		Policy: registry.PullAlways,
+		Stdout: os.Stdout,
 	}
 	if err := registry.Pull(img, opts); err != nil {
 		return err
 	}
-
-	fmt.Printf("downloaded %s\n", img.FQIN())
 
 	return nil
 }

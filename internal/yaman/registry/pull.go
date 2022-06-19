@@ -3,6 +3,7 @@ package registry
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 
@@ -14,6 +15,7 @@ type PullPolicy string
 // PullOpts contains options for the pull operation.
 type PullOpts struct {
 	Policy PullPolicy
+	Stdout io.Writer
 }
 
 const (
@@ -66,5 +68,5 @@ func Pull(img *image.Image, opts PullOpts) error {
 		return fmt.Errorf("unsupported registry '%s'", img.Hostname)
 	}
 
-	return PullFromRegistry(img, rOpts)
+	return PullFromRegistry(img, opts, rOpts)
 }

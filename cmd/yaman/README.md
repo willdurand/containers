@@ -390,8 +390,8 @@ Alias: `yaman i`
 #### `yaman image pull`
 
 ``` console
-$ yaman image pull docker.io/library/hello-world
-downloaded docker.io/library/hello-world:latest
+$ yaman i pull docker.io/willdurand/hello-world
+sha256:1bc1a702b0483184d0c0e12a9b3bfc20f3a89ed49b52fd8ad9d32c8180f01443
 ```
 
 #### `yaman image list`
