@@ -46,15 +46,25 @@ func Pull(img *image.Image, opts PullOpts) error {
 		}
 	}
 
+	var rOpts registryOpts
 	switch img.Hostname {
 	case "docker.io":
-		if err := PullFromDocker(img); err != nil {
-			return err
+		rOpts = registryOpts{
+			AuthURL:      "https://auth.docker.io/token",
+			Service:      "registry.docker.io",
+			IndexBaseURL: "https://index.docker.io/v2",
+		}
+
+	case "quay.io":
+		rOpts = registryOpts{
+			AuthURL:      "https://quay.io/v2/auth",
+			Service:      "quay.io",
+			IndexBaseURL: "https://quay.io/v2",
 		}
 
 	default:
 		return fmt.Errorf("unsupported registry '%s'", img.Hostname)
 	}
 
-	return nil
+	return PullFromRegistry(img, rOpts)
 }
