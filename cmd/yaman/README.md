@@ -2,16 +2,19 @@
 
 Yaman is a daemon-less container manager inspired by [Docker][] and [Podman][] that does not need `root`-like privileges.
 
+When Yaman is executed by an unprivileged user, [fuse-overlayfs][] is used to mount the root filesystem (`rootfs`). As for networking, [slirp4netns][] is used for both unprivileged and privileged executions (no reason to use slirp4netns for "rootful" containers except simplicity).
+
 Yaman supports the following registries:
 
 - [Docker Hub](https://hub.docker.com/)
 - [Red Hat Quay](https://quay.io/)
 
+
 ## Commands
 
 **👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
-⚠️ You must have a recent version of [fuse-overlay][] installed. When `fuse-overlay` is not installed, Yaman will fallback to native OverlayFS but that usually requires elevated privileges (with `sudo` for example).
+⚠️ You must have a recent version of [fuse-overlayfs][] installed. When `fuse-overlayfs` is not installed, Yaman will fallback to native OverlayFS but that usually requires elevated privileges (with `sudo` for example).
 
 ### `yaman container`
 
@@ -447,6 +450,8 @@ hello
 ```
 
 [docker]: https://docs.docker.com/reference/
+[fuse-overlayfs]: https://github.com/containers/fuse-overlayfs
 [hello-world-docker]: https://hub.docker.com/_/hello-world
 [hello-world]: https://hub.docker.com/r/willdurand/hello-world
 [podman]: https://docs.podman.io/en/latest/
+[slirp4netns]: https://github.com/rootless-containers/slirp4netns
