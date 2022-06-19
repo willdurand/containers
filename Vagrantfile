@@ -1,5 +1,5 @@
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/focal64"
+  config.vm.box = "ubuntu/jammy64"
 
   config.vm.provision "shell" do |s|
     s.inline = <<-'SCRIPT'
@@ -12,6 +12,10 @@ echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/golang.sh >
 
 echo '==> configure git'
 git config --global --add safe.directory /vagrant
+
+echo '==> install fuse-overlayfs'
+apt-get update
+apt-get install -y fuse-overlayfs
 SCRIPT
   end
 end
