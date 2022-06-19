@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -35,6 +36,7 @@ type Container struct {
 	StartedAt   time.Time
 	ExitedAt    time.Time
 	LogFilePath string
+	UseFuse     bool
 }
 
 const logFileName = "container.log"
@@ -78,15 +80,32 @@ func (c *Container) MakeBundle() error {
 		}
 	}
 
-	mountData := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", c.lowerdir(), c.datadir(), c.workdir())
+	mountData := fmt.Sprintf(
+		"lowerdir=%s,upperdir=%s,workdir=%s,private",
+		c.lowerdir(),
+		c.datadir(),
+		c.workdir(),
+	)
+
+	fuse, err := exec.LookPath("fuse-overlayfs")
+	// We need `fuse-overlayfs` if we want to use it but when Yaman is executed
+	// with elevated privileges, we can safely use the native OverlayFS.
+	c.UseFuse = err == nil && os.Getuid() != 0
 
 	logrus.WithFields(logrus.Fields{
 		"data":   mountData,
 		"target": c.RootFS(),
+		"fuse":   c.UseFuse,
 	}).Debug("mount overlay")
 
-	if err := syscall.Mount("overlay", c.RootFS(), "overlay", 0, mountData); err != nil {
-		return fmt.Errorf("failed to mount overlay: %w", err)
+	if c.UseFuse {
+		if err := exec.Command(fuse, "-o", mountData, c.RootFS()).Run(); err != nil {
+			return fmt.Errorf("failed to mount overlay (fuse): %w", err)
+		}
+	} else {
+		if err := syscall.Mount("overlay", c.RootFS(), "overlay", 0, mountData); err != nil {
+			return fmt.Errorf("failed to mount overlay (native): %w", err)
+		}
 	}
 
 	// Convert image config into a runtime config.
@@ -141,10 +160,15 @@ func (c *Container) Command() []string {
 }
 
 func (c *Container) CleanUp() error {
-	if err := syscall.Unmount(c.RootFS(), 0); err != nil {
-		// This likely happens because the rootfs has been previously unmounted.
-		logrus.WithError(err).Debug("failed to unmount rootfs")
-
+	if c.UseFuse {
+		if err := exec.Command("fusermount3", "-u", c.RootFS()).Run(); err != nil {
+			logrus.WithError(err).Debug("failed to unmount rootfs (fuse)")
+		}
+	} else {
+		if err := syscall.Unmount(c.RootFS(), 0); err != nil {
+			// This likely happens because the rootfs has been previously unmounted.
+			logrus.WithError(err).Debug("failed to unmount rootfs (native)")
+		}
 	}
 
 	return nil
