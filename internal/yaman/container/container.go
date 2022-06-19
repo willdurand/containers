@@ -1,11 +1,13 @@
 package container
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -39,7 +41,10 @@ type Container struct {
 	UseFuse     bool
 }
 
-const logFileName = "container.log"
+const (
+	logFileName            = "container.log"
+	slirp4netnsPidFileName = "slirp4netns.pid"
+)
 
 func New(rootDir string, img *image.Image, opts ContainerOpts) *Container {
 	id := strings.ReplaceAll(uuid.NewString(), "-", "")
@@ -57,6 +62,10 @@ func New(rootDir string, img *image.Image, opts ContainerOpts) *Container {
 
 func GetBaseDir(rootDir string) string {
 	return filepath.Join(rootDir, "containers")
+}
+
+func GetSlirp4netnsPidFilePath(bundleDir string) string {
+	return filepath.Join(bundleDir, slirp4netnsPidFileName)
 }
 
 func (c *Container) RootFS() string {
@@ -133,6 +142,20 @@ func (c *Container) MakeBundle() error {
 	}
 	c.Config.Hostname = hostname
 
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	c.Config.Hooks = &runtimespec.Hooks{
+		CreateRuntime: []runtimespec.Hook{
+			runtimespec.Hook{
+				Path: self,
+				Args: []string{self, "container", "hook", "CreateRuntime"},
+			},
+		},
+	}
+
 	data, err := json.Marshal(c.Config)
 	if err != nil {
 		return err
@@ -160,6 +183,18 @@ func (c *Container) Command() []string {
 }
 
 func (c *Container) CleanUp() error {
+	if _, err := os.Stat(c.Slirp4netnsPidFilePath()); err == nil {
+		if data, err := os.ReadFile(c.Slirp4netnsPidFilePath()); err == nil {
+			if slirpPid, err := strconv.Atoi(string(bytes.TrimSpace(data))); err == nil {
+				logrus.WithField("pid", slirpPid).Debug("terminating slirp4netns")
+
+				if err := syscall.Kill(slirpPid, syscall.SIGTERM); err != nil {
+					logrus.WithError(err).Debug("failed to terminate slirp4netns")
+				}
+			}
+		}
+	}
+
 	if c.UseFuse {
 		if err := exec.Command("fusermount3", "-u", c.RootFS()).Run(); err != nil {
 			logrus.WithError(err).Debug("failed to unmount rootfs (fuse)")
@@ -175,10 +210,6 @@ func (c *Container) CleanUp() error {
 }
 
 func (c *Container) Destroy() error {
-	if err := c.CleanUp(); err != nil {
-		return err
-	}
-
 	if err := os.RemoveAll(c.BaseDir); err != nil {
 		return err
 	}
@@ -193,6 +224,10 @@ func (c *Container) IsStarted() bool {
 
 func (c *Container) IsExited() bool {
 	return !c.ExitedAt.IsZero()
+}
+
+func (c *Container) Slirp4netnsPidFilePath() string {
+	return GetSlirp4netnsPidFilePath(c.BaseDir)
 }
 
 func (c *Container) lowerdir() string {

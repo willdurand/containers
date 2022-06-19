@@ -86,11 +86,12 @@ func BaseSpec(rootfs string) *runtimespec.Spec {
 				{ContainerID: 0, HostID: uint32(os.Getgid()), Size: 1},
 			},
 			Namespaces: []runtimespec.LinuxNamespace{
-				{Type: "pid"},
 				{Type: "ipc"},
-				{Type: "uts"},
 				{Type: "mount"},
+				{Type: "network"},
+				{Type: "pid"},
 				{Type: "user"},
+				{Type: "uts"},
 			},
 		},
 	}
