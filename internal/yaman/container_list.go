@@ -22,7 +22,7 @@ type ContainerListItem struct {
 	Command string
 	Status  string
 	Name    string
-	created time.Time
+	Created time.Time
 }
 
 // ContainerList contains the list of containers to show to the user.
@@ -88,12 +88,12 @@ func ListContainers(rootDir string, all bool) (ContainerList, error) {
 			Command: strings.Join(shim.Container.Command(), " "),
 			Status:  status,
 			Name:    shim.Container.Opts.Name,
-			created: shim.Container.CreatedAt,
+			Created: shim.Container.CreatedAt,
 		})
 	}
 
 	sort.Slice(list, func(i, j int) bool {
-		return list[j].created.Before(list[i].created)
+		return list[j].Created.Before(list[i].Created)
 	})
 
 	return list, nil
