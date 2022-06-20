@@ -10,16 +10,17 @@ import (
 
 func init() {
 	cmd := &cobra.Command{
-		Use:       "hook <hook>",
-		Short:     "Hidden command called by the OCI runtime",
-		Hidden:    true,
-		Run:       cli.HandleErrors(hook),
-		Args:      cobra.ExactArgs(1),
-		ValidArgs: []string{"CreateRuntime"},
+		Use:    "hook <hook>",
+		Short:  "Hidden command called by the OCI runtime",
+		Hidden: true,
+		Run:    cli.HandleErrors(hook),
+		Args:   cobra.ExactArgs(1),
 	}
 	containerCommand.AddCommand(cmd)
 }
 
 func hook(cmd *cobra.Command, args []string) error {
-	return yaman.ProcessHook(os.Stdin, args[0])
+	rootDir, _ := cmd.Flags().GetString("root")
+
+	return yaman.ProcessHook(rootDir, args[0], os.Stdin)
 }
