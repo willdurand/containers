@@ -1,5 +1,8 @@
 tasks:
   - name: bootstrap
+    init: |
+      sudo apt-get install -y fuse-overlayfs slirp4netns
+
     before: |
       # This is needed to hide a warning in `sudo make install`.
       sudo git config --global --add safe.directory "$GITPOD_REPO_ROOT"

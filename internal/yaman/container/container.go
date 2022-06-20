@@ -90,7 +90,7 @@ func (c *Container) MakeBundle() error {
 	}
 
 	mountData := fmt.Sprintf(
-		"lowerdir=%s,upperdir=%s,workdir=%s,private",
+		"lowerdir=%s,upperdir=%s,workdir=%s",
 		c.lowerdir(),
 		c.datadir(),
 		c.workdir(),
