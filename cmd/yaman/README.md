@@ -1,6 +1,6 @@
 # Yet Another (container) MANager
 
-Yaman is a daemon-less container manager inspired by [Docker][] and [Podman][] that does not need `root`-like privileges.
+Yaman is a daemon-less container manager inspired by [Docker][] and [Podman][] that does not need elevated privileges. It was written for educational purposes.
 
 When Yaman is executed by an unprivileged user, [fuse-overlayfs][] is used to mount the root filesystem (`rootfs`). As for networking, [slirp4netns][] is used for both unprivileged and privileged executions (no reason to use slirp4netns for "rootful" containers except simplicity).
 
@@ -8,7 +8,6 @@ Yaman supports the following registries:
 
 - [Docker Hub](https://hub.docker.com/)
 - [Red Hat Quay](https://quay.io/)
-
 
 ## Commands
 
@@ -28,7 +27,7 @@ Alias: `yaman c`
 
 Let's run the image named [`docker.io/willdurand/hello-world`][hello-world]. This is a simple example inspired by Docker's [hello-world][hello-world-docker].
 
-``` console
+```console
 $ yaman c run docker.io/willdurand/hello-world
 
 Hello from @willdurand!
@@ -56,23 +55,29 @@ For more examples and ideas, visit:
 
 ```
 
-Run a container in the background with `--detach` (short version: `-d`):
+##### `--detach` | `-d`
 
-``` console
+Run a container in the background with `--detach`:
+
+```console
 $ yaman c run -d docker.io/library/alpine:latest sleep 1000
 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
-Change the container's hostname with `--hostname`:
+##### `--hostname`
 
-``` console
+By default, Yaman sets the container ID as hostname. You can configure a different value with `--hostname`:
+
+```console
 $ yaman c run --hostname="hello" docker.io/library/alpine:latest -- hostname
 hello
 ```
 
-Create an interactive container (that keeps `stdin` open) with `--interactive` (short version: `-i`):
+##### `--interactive` | `-i`
 
-``` console
+Create an interactive container (that keeps `stdin` open) with `--interactive`:
+
+```console
 $ echo 'hello there' | yaman c run --interactive docker.io/library/alpine -- cat
 hello there
 ^C
@@ -82,9 +87,11 @@ CONTAINER ID                       IMAGE                             COMMAND   S
 103493075a744ec0b47a3a9a6aed473e   docker.io/library/alpine:latest   cat       running     elated_bell
 ```
 
+##### `--tty` | `-t`
+
 Spawn an interactive shell with both `-i` and `--tty` (short version: `-t`):
 
-``` console
+```console
 $ yaman c run -it docker.io/library/alpine sh
 / # id
 uid=0(root) gid=0(root) groups=0(root)
@@ -94,9 +101,17 @@ uid=0(root) gid=0(root) groups=0(root)
 / # exit
 ```
 
-Use a different registry:
+##### Other options
 
-``` console
+| Option      | Description                                       |
+| ----------- | ------------------------------------------------- |
+| `--name`    | Assign a name to the container                    |
+| `--rm`      | Automatically remove the container when it exits  |
+| `--runtime` | Specify the OCI runtime to use for this container |
+
+##### Example with Red Hat Quay
+
+```console
 $ yaman c run -it quay.io/aptible/alpine
 / # cat /etc/alpine-release
 3.3.3
@@ -109,7 +124,7 @@ b2985e49d1f34d539599bba4fc0e789d   quay.io/aptible/alpine:latest   /bin/sh   Exi
 
 #### `yaman container inspect`
 
-``` console
+```console
 $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
@@ -119,7 +134,7 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
 ```json
 {
   "Id": "2be09afa2b3b47c2a9975017aa2913fc",
-  "Root": "/run/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc",
+  "Root": "/run/user/1000/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc",
   "Config": {
     "ociVersion": "1.0.2",
     "process": {
@@ -127,17 +142,14 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "uid": 0,
         "gid": 0
       },
-      "args": [
-        "sleep",
-        "1000"
-      ],
+      "args": ["sleep", "1000"],
       "env": [
         "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       ],
       "cwd": "/"
     },
     "root": {
-      "path": "/run/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc/rootfs"
+      "path": "/run/user/1000/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc/rootfs"
     },
     "hostname": "2be09afa2b3b47c2a9975017aa2913fc",
     "mounts": [
@@ -150,12 +162,7 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "destination": "/dev",
         "type": "tmpfs",
         "source": "tmpfs",
-        "options": [
-          "nosuid",
-          "strictatime",
-          "mode=755",
-          "size=65536k"
-        ]
+        "options": ["nosuid", "strictatime", "mode=755", "size=65536k"]
       },
       {
         "destination": "/dev/pts",
@@ -173,89 +180,82 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "destination": "/dev/shm",
         "type": "tmpfs",
         "source": "shm",
-        "options": [
-          "nosuid",
-          "noexec",
-          "nodev",
-          "mode=1777",
-          "size=65536k"
-        ]
+        "options": ["nosuid", "noexec", "nodev", "mode=1777", "size=65536k"]
       },
       {
         "destination": "/dev/mqueue",
         "type": "mqueue",
         "source": "mqueue",
-        "options": [
-          "nosuid",
-          "noexec",
-          "nodev"
-        ]
+        "options": ["nosuid", "noexec", "nodev"]
       },
       {
         "destination": "/sys",
         "type": "none",
         "source": "/sys",
-        "options": [
-          "rbind",
-          "nosuid",
-          "noexec",
-          "nodev",
-          "ro"
-        ]
+        "options": ["rbind", "nosuid", "noexec", "nodev", "ro"]
       }
     ],
+    "hooks": {
+      "createRuntime": [
+        {
+          "path": "/vagrant/bin/yaman",
+          "args": ["/vagrant/bin/yaman", "container", "hook", "CreateRuntime"]
+        }
+      ]
+    },
     "linux": {
       "uidMappings": [
         {
           "containerID": 0,
-          "hostID": 0,
+          "hostID": 1000,
           "size": 1
         }
       ],
       "gidMappings": [
         {
           "containerID": 0,
-          "hostID": 0,
+          "hostID": 1000,
           "size": 1
         }
       ],
       "namespaces": [
         {
-          "type": "pid"
-        },
-        {
           "type": "ipc"
-        },
-        {
-          "type": "uts"
         },
         {
           "type": "mount"
         },
         {
+          "type": "network"
+        },
+        {
+          "type": "pid"
+        },
+        {
           "type": "user"
+        },
+        {
+          "type": "uts"
         }
       ]
     }
   },
   "Options": {
-    "Name": "jovial_banach",
-    "Command": [
-      "sleep",
-      "1000"
-    ],
+    "Name": "funny_hopper",
+    "Command": ["sleep", "1000"],
     "Remove": false,
     "Hostname": "",
+    "Interactive": false,
     "Tty": false
   },
-  "Created": "2022-06-16T22:44:20.94104793+02:00",
-  "Started": "2022-06-16T22:44:21.009890159+02:00",
+  "Created": "2022-06-20T06:39:16.413157393Z",
+  "Started": "2022-06-20T06:39:16.698138744Z",
   "Exited": "0001-01-01T00:00:00Z",
   "Image": {
     "Hostname": "docker.io",
     "Name": "library/alpine",
     "Version": "latest",
-    "BaseDir": "/run/yaman/images/docker.io/library/alpine/latest",
+    "BaseDir": "/run/user/1000/yaman/images/docker.io/library/alpine/latest",
     "Config": {
       "created": "2022-05-23T19:19:31.970967174Z",
       "architecture": "amd64",
@@ -264,9 +264,7 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "Env": [
           "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
         ],
-        "Cmd": [
-          "/bin/sh"
-        ]
+        "Cmd": ["/bin/sh"]
       },
       "rootfs": {
         "type": "layers",
@@ -308,22 +306,23 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
       "ociVersion": "1.0.2",
       "id": "2be09afa2b3b47c2a9975017aa2913fc",
       "status": "running",
-      "pid": 190288,
-      "bundle": "/run/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc"
+      "pid": 2190,
+      "bundle": "/run/user/1000/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc"
     },
     "Status": {},
     "Options": {
       "Runtime": "yacr"
     },
-    "SocketPath": "/run/yacs/2be09afa2b3b47c2a9975017aa2913fc/shim.sock"
+    "SocketPath": "/run/user/1000/yacs/2be09afa2b3b47c2a9975017aa2913fc/shim.sock"
   }
 }
 ```
+
 </details>
 
 #### `yaman container stop`
 
-``` console
+```console
 $ yaman c stop 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
@@ -331,7 +330,7 @@ $ yaman c stop 2be09afa2b3b47c2a9975017aa2913fc
 
 List all containers and not only those currently running:
 
-``` console
+```console
 $ yaman c list --all
 CONTAINER ID                       IMAGE                             COMMAND    STATUS                          NAME
 1234e4a90ed042dc96b1a6f80417b75a   docker.io/library/alpine:latest   hostname   Exited (0) About a minute ago   great_hermann
@@ -339,13 +338,13 @@ CONTAINER ID                       IMAGE                             COMMAND    
 
 #### `yaman container delete`
 
-``` console
+```console
 $ yaman c delete 2be09afa2b3b47c2a9975017aa2913fc
 ```
 
 #### `yaman container attach`
 
-``` console
+```console
 $ yaman c run -d --rm docker.io/library/alpine -- top -b
 4bd06a2046e44e1d96c636c7ecae62d4
 
@@ -372,7 +371,7 @@ Load average: 0.15 0.07 0.07 2/183 5
 
 We can also attach a container that was created with a terminal (PTY):
 
-``` console
+```console
 $ yaman c run -it -d --rm docker.io/library/alpine -- sh
 a932b1afa47341d183abf16d36aa33dd
 
@@ -392,27 +391,28 @@ Alias: `yaman i`
 
 #### `yaman image pull`
 
-``` console
+```console
 $ yaman i pull docker.io/willdurand/hello-world
 sha256:1bc1a702b0483184d0c0e12a9b3bfc20f3a89ed49b52fd8ad9d32c8180f01443
 ```
 
 #### `yaman image list`
 
-``` console
+```console
 $ yaman image list
-NAME                  TAG         CREATED                PULLED           REGISTRY
-library/hello-world   latest      2021-09-23T23:47:57Z   12 minutes ago   docker.io
-library/redis         latest      2022-06-13T20:08:18Z   10 minutes ago   docker.io
+NAME                     TAG         CREATED                PULLED           REGISTRY
+willdurand/hello-world   latest      2022-06-17T20:32:59Z   3 seconds ago    docker.io
+aptible/alpine           latest      2022-06-14T17:29:19Z   58 seconds ago   quay.io
+library/alpine           latest      2022-05-23T19:19:31Z   2 minutes ago    docker.io
 ```
 
 ## Example with `runc`
 
-Yaman uses the [yacs](../yacs/README.md) shim under the hood, which should be able to interact with an OCI-compliant runtime even though the default runtime is [yacr](../yacr/README.md). We can pass the `--runtime` option to `yaman container run` in order to use a different OCI runtime.
+Yaman uses [Yacs](../yacs/README.md) to "monitor" containers under the hood, which is capable of interacting with any OCI-compliant runtime. The default runtime is [Yacr](../yacr/README.md) but we can use the `--runtime` option to specify a different OCI runtime.
 
 This is an example with `runc`:
 
-``` console
+```console
 $ yaman c run --rm -it --runtime=runc docker.io/library/alpine sh
 / # hostname
 af5479f3265a49f78569b8b65c7d1412
@@ -420,15 +420,15 @@ af5479f3265a49f78569b8b65c7d1412
 
 In a different terminal, we can query `runc` manually and see the container above listed:
 
-``` console
+```console
 $ runc list
-ID                                 PID         STATUS    BUNDLE                                                   CREATED                          OWNER
-af5479f3265a49f78569b8b65c7d1412   3394        running   /tmp/yaman/containers/af5479f3265a49f78569b8b65c7d1412   2022-06-17T20:06:38.326130089Z   root
+ID                                 PID         STATUS      BUNDLE                                                             CREATED                          OWNER
+f6834e0a03134e50907f412fa6e394aa   2367        running     /run/user/1000/yaman/containers/f6834e0a03134e50907f412fa6e394aa   2022-06-20T06:48:58.759394476Z   vagrant
 ```
 
 `runc` being the reference implementation and a production-ready tool, it has more features. For example, we can `exec` an existing container:
 
-``` console
+```console
 $ runc exec -t af5479f3265a49f78569b8b65c7d1412 sh
 / # echo "hello" > /some-file
 / #
@@ -436,7 +436,7 @@ $ runc exec -t af5479f3265a49f78569b8b65c7d1412 sh
 
 If we go back to the terminal where `yaman` is running, we should be able to see the newly created file and output its content:
 
-``` console
+```console
 $ yaman c run --rm -it --runtime=runc docker.io/library/alpine sh
 / # hostname
 af5479f3265a49f78569b8b65c7d1412

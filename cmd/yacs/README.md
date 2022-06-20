@@ -1,8 +1,8 @@
 # Yet Another Container Shim
 
-This is an example of a container shim that exposes an HTTP API[^1] to control the lifecycle of a container process. Theoretically, shims should be a small as possible because container managers use a shim per container process. This isn't the case of this shim, though, but also no one should be using it except for learning purposes.
+This is an example of a container shim that exposes an HTTP API[^1] to control the life cycle of a container process. Theoretically, shims should be a small as possible because container managers use a shim per container process. This isn't the case of this shim, though, but also no one should be using it except for learning purposes.
 
-[^1]: this will likely change in the future (to a GRPC API with [ttrpc][])
+[^1]: this might change in the future (to a GRPC API with [ttrpc][])
 
 ## Getting started with an example
 
@@ -10,7 +10,7 @@ This is an example of a container shim that exposes an HTTP API[^1] to control t
 
 First, we need a new bundle:
 
-``` console
+```console
 $ make alpine_bundle
 ```
 
@@ -33,7 +33,7 @@ Let's edit the `config.json` file generated in `/tmp/alpine-bundle` as follows:
 
 We should also create this new file named `hello-loop.sh`:
 
-``` console
+```console
 $ cat <<'EOF' > /tmp/alpine-bundle/rootfs/hello-loop.sh
 #!/bin/sh
 
@@ -53,22 +53,22 @@ EOF
 
 This script loops forever and prints a message every second, unless it receives a `SIGTERM` signal, in which case it exits with a status equal to `123`.
 
-Now we can manually execute `yacs` (the shim) to create a new container with the `yacr` runtime (the default). This step is usually performed by a container manager.
+We are ready to manually execute `yacs` (the shim) to create a new container with the `yacr` runtime (the default).
 
-``` console
+```console
 $ yacs --bundle=/tmp/alpine-bundle --container-id=alpine-1
 /home/gitpod/.run/yacs/alpine-1/shim.sock
 ```
 
+**Note:** This step is usually automated by a container manager such as [Yaman][].
+
 This should start a new shim that will automatically create a container process. We can check with `yacr list` and `ps`:
 
-``` console
+```console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 alpine-1    created     2022-06-03T22:00:00Z   44488       /tmp/alpine-bundle
-```
 
-``` console
 $ ps auxf
 USER         PID    %CPU %MEM    VSZ     RSS TTY       STAT START   TIME COMMAND
 [...]
@@ -80,7 +80,7 @@ When the command returns, it prints a unix socket address that can be used to qu
 
 We can use `curl` to interact with the shim:
 
-``` console
+```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
@@ -98,7 +98,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 
 We can now start the container by sending the `start` command (`cmd`) in a `POST` HTTP request:
 
-``` console
+```console
 $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
@@ -118,13 +118,13 @@ $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim
 
 The container is now running, which we can confirm with `yacr list` and `ps`:
 
-``` console
+```console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 alpine-1    running     2022-06-03T22:00:00Z   44488       /tmp/alpine-bundle
 ```
 
-``` console
+```console
 $ ps auxf
 USER         PID    %CPU %MEM    VSZ     RSS TTY       STAT START   TIME COMMAND
 [...]
@@ -135,7 +135,7 @@ gitpod       55758  0.0  0.0     1596    4    ?        S    22:02   0:00      \_
 
 We can query the shim to get the container's logs:
 
-``` console
+```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/logs
 {"m":"[Sun Jun 12 11:51:44 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:44.947554491Z"}
 {"m":"[Sun Jun 12 11:51:45 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:45.948493454Z"}
@@ -151,7 +151,7 @@ Each entry is a JSON object with the following properties:
 
 We can also use the shim HTTP API to send a signal to the container:
 
-``` console
+```console
 $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
@@ -167,9 +167,11 @@ $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.
 }
 ```
 
-Weird, it doesn't look like anything as changed. Let's query the logs again:
+In the output above, we see the `status` set to `running` despite our attempt to "kill" the container. This happens because of timing, the container probably didn't have time to change its state.
 
-``` console
+If we query the logs again, we can see that the container actually received the signal (`SIGTERM` by default):
+
+```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/logs
 [...]
 {"m":"[Sun Jun 12 11:52:36 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:52:36.001548972Z"}
@@ -178,9 +180,11 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/logs
 {"m":"bye, bye","s":"stderr","t":"2022-06-12T11:52:40.005199923Z"}
 ```
 
-The container printed the message of the `signal_handler` defined in the `hello-loop.sh` script so the container should have exited. We can verify by querying the state of the shim again. This time, the container is marked as `stopped` and we have information in the `status` property:
+The container printed the message of the `signal_handler` defined in the `hello-loop.sh` script so the `kill` command worked as intended.
 
-``` console
+Let's query the state of the container again:
+
+```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
   "id": "alpine-1",
@@ -200,24 +204,24 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 }
 ```
 
-The `exitStatus` is `123` and matches what we defined in the `hello-loop.sh` file created previously. Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. This is one of the reasons why shims are used.
+The container is now "stopped". The `exitStatus` is `123` and matches what we defined in the `hello-loop.sh` file created previously. Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. This is one of the reasons why shims are used.
 
 We can now delete the container. This API request should not return anything (HTTP 204):
 
-``` console
+```console
 $ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 ```
 
 If we query the state of the shim again, it should indicate that the container does not exist anymore:
 
-``` console
+```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 container 'alpine-1' does not exist
 ```
 
 Finally, we can terminate the shim with a `DELETE` HTTP request:
 
-``` console
+```console
 $ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 BYE
 ```
@@ -228,14 +232,14 @@ BYE
 
 This shim should be able to use any OCI-compliant runtime like [`runc`][runc] (the reference implementation). Let's reproduce what was done in the previous section but with `runc`.
 
-``` console
+```console
 $ yacs --bundle /tmp/alpine-bundle/ --container-id alpine-runc --runtime runc
 /home/gitpod/.run/yacs/alpine-runc/shim.sock
 ```
 
 The `ps` output below shows that `runc` has been invoked:
 
-``` console
+```console
 $ ps auxf
 USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
 [...]
@@ -243,7 +247,7 @@ gitpod      4321  0.0  0.0 1079876 6776 ?        Ssl  10:57   0:00 yacs --bundle
 gitpod      4363  0.0  0.0 1083784 9980 ?        Ssl  10:57   0:00  \_ runc init
 ```
 
-``` console
+```console
 $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 {
   "id": "alpine-runc",
@@ -261,7 +265,7 @@ $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-runc/s
 
 We could use `runc list` to list the containers created by `runc`:
 
-``` console
+```console
 $ runc list
 ID            PID         STATUS      BUNDLE               CREATED                          OWNER
 alpine-runc   4363        running     /tmp/alpine-bundle   2022-06-05T10:57:18.334165274Z   gitpod
@@ -269,7 +273,7 @@ alpine-runc   4363        running     /tmp/alpine-bundle   2022-06-05T10:57:18.3
 
 Since `runc` is the reference implementation and a production-ready runtime, it has a LOT more features than [`yacr`](../yacr/). For instance, we can use `runc exec` to execute a new process in the container, like spawning a shell:
 
-``` console
+```console
 $ runc exec -t alpine-runc /bin/sh
 / # ps
 PID   USER     TIME  COMMAND
@@ -282,7 +286,7 @@ PID   USER     TIME  COMMAND
 
 Let's kill the container now:
 
-``` console
+```console
 $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 {
   "id": "alpine-runc",
@@ -300,7 +304,7 @@ $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-runc/sh
 
 The state should be updated after the container process has exited:
 
-``` console
+```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 {
   "id": "alpine-runc",
@@ -320,7 +324,7 @@ $ curl --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 
 We can now delete the container and terminate the shim:
 
-``` console
+```console
 $ curl -X POST -d 'cmd=delete' --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 $ curl -X DELETE --unix-socket /home/gitpod/.run/yacs/alpine-runc/shim.sock http://shim/
 BYE
@@ -334,7 +338,7 @@ Yacs has many configuration flags (options). This section describes some of them
 
 Yacs uses this log file to write the standard output (and error) of the container process. Each line is appended to the log file as a JSON object (also described in a previous section above):
 
-``` json
+```json
 {"m":"[Sun Jun 12 11:51:44 UTC 2022] Hello!","s":"stdout","t":"2022-06-12T11:51:44.947554491Z"}
 ```
 
