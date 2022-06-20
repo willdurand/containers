@@ -6,23 +6,25 @@
 
 This runtime is known to be unsafe because:
 
-1. I wrote it to learn about container runtimes
+1. I wrote it to learn about container runtime
 2. it is very likely vulnerable to [CVE-2019-5736][] and probably other issues fixed in [runc][] already
-3. it is imcomplete, not unit tested and unreviewed
+3. it is incomplete, not unit tested and unreviewed
 
 ## Getting started (standalone)
 
 **👋 Make sure to [follow these instructions](../../README.md#building-this-project) first.**
 
-First, we need an OCI bundle, which we can create using `docker` and an OCI runtime like `runc` or `yacr`. It isn't super complicated but, to save some time, this project has a `Makefile` with a command to generate a valid bundle in `/tmp`:
+First, we need an OCI bundle, which we can create using `docker` and an OCI runtime like `runc` or `yacr`. It isn't super complicated but, to save some time, this project has a `Makefile` with a command to automagically generate a valid bundle in `/tmp`:
 
-``` console
+```console
 $ make alpine_bundle
 ```
 
-Now we can use `yacr create` to create a new container. We need to pass a container ID and the path to the bundle we made previously. In order to create a "rootless container", we need to specify a root directory (i.e. the location used by `yacr` to write its data) that is accessible by the current user. If you don't have the `XDG_RUNTIME_DIR` environment variable configured on your system (see: [XDG Base Directory][]), you'll have to specify the root directory (e.g. `--root /tmp/yacr`).
+Now we can use `yacr create` to create a new container. We need to pass a container ID and the path to the bundle we made previously.
 
-``` console
+**Note:** In order to create a "rootless container", we need to specify a root directory (i.e. the location used by `yacr` to write its data) that is accessible by the current user. If you don't have the `XDG_RUNTIME_DIR` environment variable configured on your system (see: [XDG Base Directory][]), you'll have to specify the root directory (e.g. `--root /tmp/yacr`).
+
+```console
 $ yacr create test-id --bundle /tmp/alpine-bundle
 ```
 
@@ -30,7 +32,7 @@ $ yacr create test-id --bundle /tmp/alpine-bundle
 
 Creating a container should not execute its process right away. Instead, it should spawn a new containerized process and wait for the "start" command. We can check the containers managed with `yacr` by running `yacr list`:
 
-``` console
+```console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 test-id     created     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
@@ -38,13 +40,13 @@ test-id     created     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
 
 We can now start the container with `yacr start`:
 
-``` console
+```console
 $ yacr start test-id
 ```
 
 The container should now be running, which we can confirm with `yacr list` again:
 
-``` console
+```console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 test-id     running     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
@@ -52,7 +54,7 @@ test-id     running     2022-05-30T22:00:00Z   137261      /tmp/alpine-bundle
 
 We should also see our process running on the host machine with `ps`:
 
-``` console
+```console
 $ ps auxf
 USER      PID     %CPU %MEM  VSZ    RSS TTY      STAT START   TIME COMMAND
 [...]
@@ -63,13 +65,13 @@ The PID reported by `yacr list` matches the `ps` output above. The owner of the 
 
 Since `yacr` implements the [runtime-spec][], we can send a signal to the process with `yacr kill`:
 
-``` console
+```console
 $ yacr kill test-id 9
 ```
 
 Let's check:
 
-``` console
+```console
 $ yacr list
 ID          STATUS      CREATED                PID         BUNDLE
 test-id     stopped     2022-05-30T22:00:00Z   0           /tmp/alpine-bundle
@@ -79,7 +81,7 @@ The container has been stopped because we sent the `SIGKILL` signal. It shouldn'
 
 It is now safe to delete the container with `yacr delete`:
 
-``` console
+```console
 $ yacr delete test-id
 ```
 
@@ -87,30 +89,52 @@ At this point, `yacr list` should not list the container with ID `test-id` anymo
 
 ### Spawning a shell
 
-In the previous section, the `config.json` has been edited to disable the `terminal` support and execute `sleep` instead of `sh` in the container. Let's revert those changes to create a new container that will spawn a shell.
+First, edit `/tmp/alpine-bundle/config.json` to add `process.terminal: true` and execute `sh` instead of `sleep 1000` (`process.args`). We need to make these two changes to be able to run `sh` with a [PTY][] in the container.
 
-First, we need a receiver terminal. We will use [`recvtty`][recvtty] from the [runc][] repository:
+```diff
+--- a/config.json
++++ b/config.json
+@@ -1,13 +1,13 @@
+ {
+   "ociVersion": "1.0.2",
+   "process": {
++    "terminal": true,
+     "user": {
+       "uid": 0,
+       "gid": 0
+     },
+     "args": [
+-      "sleep",
+-      "100"
++      "sh"
+     ],
+     "env": [
+       "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+```
 
-``` console
+Next, we need a receiver terminal that will connect to the container's [PTY][] on the host machine. We will use [`recvtty`][recvtty] from the [runc][] repository:
+
+```console
 $ go install github.com/opencontainers/runc/contrib/cmd/recvtty@latest
 $ recvtty /tmp/console.sock
 ```
 
-In another terminal, let's get back to the `/tmp/alpine-bundle` directory and create the container with the `--console-socket` option:
+In another terminal, let's get back to the `/tmp/alpine-bundle` directory and create the container with the `--console-socket` option, which tells the runtime to create a container with a [PTY][]:
 
-``` console
+```console
 $ yacr create test-id --bundle . --console-socket /tmp/console.sock
 ```
 
 When we start the container, the runtime will return immediately:
 
-``` console
+```console
 $ yacr start test-id
 ```
 
 In the terminal executing `recvtty`, we should now see `sh` running in the container:
 
-``` console
+```console
+$ recvtty /tmp/console.sock
 / # ps
 ps
 PID   USER     TIME  COMMAND
@@ -124,13 +148,13 @@ PID   USER     TIME  COMMAND
 
 Let's create a new Docker daemon with the `yacr` runtime:
 
-``` console
+```console
 $ ./scripts/run-dockerd
 ```
 
 In another terminal, you can connect to this daemon by running `docker` with `-H unix:///tmp/d2/d2.socket` or use the `./scripts/docker` wrapper in this repository:
 
-``` console
+```console
 $ ./scripts/docker info
 [...]
  Runtimes: gitpod io.containerd.runc.v2 io.containerd.runtime.v1.linux runc yacr
@@ -140,7 +164,7 @@ $ ./scripts/docker info
 
 We can then use Docker as usual:
 
-``` console
+```console
 $ ./scripts/docker run --rm -it busybox:latest /bin/sh
 Unable to find image 'busybox:latest' locally
 latest: Pulling from library/busybox
@@ -169,26 +193,26 @@ round-trip min/avg/max = 6.093/6.093/6.093 ms
 
 First, [install `containerd`][install-containerd], then run `containerd` with elevated privileges:
 
-``` console
+```console
 $ sudo containerd
 ```
 
 In order to run containers with the `yacr` runtime, we need an image first:
 
-``` console
+```console
 $ sudo ctr images pull docker.io/library/alpine:latest
 ```
 
 We can now run a new container with our runtime by specifying its path with `--runc-binary` (we'll use the default "runc shim"). On Gitpod, we should also pass `--snapshotter=native` to `ctr run`. The command below will spawn an interactive shell in our container thanks to the `--tty` option:
 
-``` console
+```console
 $ sudo ctr run --runc-binary=/workspace/containers/bin/yacr --snapshotter=native --tty docker.io/library/alpine:latest alpine-1 /bin/sh
 / #
 ```
 
 In a different terminal, we can see list the containers with `yacr list`:
 
-``` console
+```console
 $ sudo ./bin/yacr --root /run/containerd/runc/default list
 ID          STATUS      CREATED                PID         BUNDLE
 alpine-1    running     2022-05-30T22:00:00Z   18166       /run/containerd/io.containerd.runtime.v2.task/default/alpine-1
@@ -201,3 +225,4 @@ alpine-1    running     2022-05-30T22:00:00Z   18166       /run/containerd/io.co
 [runtime-spec]: https://github.com/opencontainers/runtime-spec
 [user namespace mappings]: https://github.com/opencontainers/runtime-spec/blob/27924127bf391ea7691924c6dcb01f3369d69fe2/config-linux.md#user-namespace-mappings
 [xdg base directory]: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+[pty]: https://man7.org/linux/man-pages/man7/pty.7.html
