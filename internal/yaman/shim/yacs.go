@@ -92,6 +92,11 @@ func (s *Yacs) Start(rootDir string) error {
 		return err
 	}
 
+	// Save the shim's state in case we need to load it in hooks.
+	if err := s.save(); err != nil {
+		return err
+	}
+
 	self, err := os.Executable()
 	if err != nil {
 		return err
@@ -153,17 +158,7 @@ func (s *Yacs) Start(rootDir string) error {
 		return fmt.Errorf("failed to start container")
 	}
 
-	// Persist the state of the shim to disk.
-	data, err = json.Marshal(s)
-	if err != nil {
-		return err
-	}
-
-	if err := ioutil.WriteFile(s.stateFilePath(), data, 0o644); err != nil {
-		return err
-	}
-
-	return nil
+	return s.save()
 }
 
 // GetState queries the shim to retrieve its state and returns it.
@@ -461,4 +456,14 @@ func (s *Yacs) getHttpClient() (*http.Client, error) {
 	}
 
 	return s.httpClient, nil
+}
+
+func (s *Yacs) save() error {
+	// Persist the state of the shim to disk.
+	data, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(s.stateFilePath(), data, 0o644)
 }

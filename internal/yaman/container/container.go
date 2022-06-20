@@ -151,7 +151,7 @@ func (c *Container) MakeBundle() error {
 		CreateRuntime: []runtimespec.Hook{
 			runtimespec.Hook{
 				Path: self,
-				Args: []string{self, "container", "hook", "CreateRuntime"},
+				Args: []string{self, "container", "hook", "network-setup"},
 			},
 		},
 	}
