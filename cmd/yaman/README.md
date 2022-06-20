@@ -83,8 +83,8 @@ hello there
 ^C
 
 $ yaman c list
-CONTAINER ID                       IMAGE                             COMMAND   STATUS      NAME
-103493075a744ec0b47a3a9a6aed473e   docker.io/library/alpine:latest   cat       running     elated_bell
+CONTAINER ID                       IMAGE                             COMMAND   CREATED          STATUS      NAME
+103493075a744ec0b47a3a9a6aed473e   docker.io/library/alpine:latest   cat       10 minutes ago   running     elated_bell
 ```
 
 ##### `--tty` | `-t`

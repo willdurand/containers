@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
+	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
@@ -32,14 +34,15 @@ func list(cmd *cobra.Command, args []string) error {
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 12, 1, 3, ' ', 0)
-	fmt.Fprint(w, "CONTAINER ID\tIMAGE\tCOMMAND\tSTATUS\tNAME\n")
+	fmt.Fprint(w, "CONTAINER ID\tIMAGE\tCOMMAND\tCREATED\tSTATUS\tNAME\n")
 
 	for _, container := range list {
 		fmt.Fprintf(
-			w, "%s\t%s\t%s\t%s\t%s\n",
+			w, "%s\t%s\t%s\t%s ago\t%s\t%s\n",
 			container.ID,
 			container.Image,
 			container.Command,
+			units.HumanDuration(time.Since(container.Created)),
 			container.Status,
 			container.Name,
 		)
