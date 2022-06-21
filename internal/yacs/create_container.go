@@ -47,19 +47,21 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		}
 	}
 
-	sin, err := os.OpenFile(filepath.Join(y.stdioDir, "0"), os.O_RDWR, os.ModeNamedPipe)
+	// We use `O_RDWR` to get non-blocking behavior, see:
+	// https://github.com/golang/go/issues/33050#issuecomment-510308419
+	sin, err := os.OpenFile(filepath.Join(y.stdioDir, "0"), os.O_RDWR, 0)
 	if err != nil {
 		logger.WithError(err).Panic("failed to open stdin fifo")
 	}
 	defer sin.Close()
 
-	sout, err := os.OpenFile(filepath.Join(y.stdioDir, "1"), os.O_RDWR, os.ModeNamedPipe)
+	sout, err := os.OpenFile(filepath.Join(y.stdioDir, "1"), os.O_RDWR, 0)
 	if err != nil {
 		logger.WithError(err).Panic("failed to open stdout fifo")
 	}
 	defer sout.Close()
 
-	serr, err := os.OpenFile(filepath.Join(y.stdioDir, "2"), os.O_RDWR, os.ModeNamedPipe)
+	serr, err := os.OpenFile(filepath.Join(y.stdioDir, "2"), os.O_RDWR, 0)
 	if err != nil {
 		logger.WithError(err).Panic("failed to open stderr fifo")
 	}
@@ -81,9 +83,8 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	// By default, we pass the standard input but the outputs are configured
 	// depending on whether the container should create a PTY or not.
 	runtimeCommand := exec.Cmd{
-		Path:  y.runtimePath,
-		Args:  runtimeArgs,
-		Stdin: sin,
+		Path: y.runtimePath,
+		Args: runtimeArgs,
 	}
 
 	// When the container should create a terminal, the shim should open a unix
@@ -157,6 +158,27 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 
 		runtimeCommand.Stderr = errWrite
 		go copyStd("stderr", errRead, logFile, serr)
+
+		inRead, inWrite, err := os.Pipe()
+		if err != nil {
+			logger.WithError(err).Panic("failed to create stdin pipe")
+		}
+		defer inRead.Close()
+
+		runtimeCommand.Stdin = inRead
+		go func() {
+			defer inWrite.Close()
+
+			scanner := bufio.NewScanner(sin)
+			for scanner.Scan() {
+				data := scanner.Bytes()
+				if bytes.Equal(data, []byte("THIS_IS_NOT_HOW_WE_SHOULD_CLOSE_A_PIPE")) {
+					break
+				}
+				inWrite.Write(data)
+				inWrite.Write([]byte("\n"))
+			}
+		}()
 	}
 
 	logger.WithFields(logrus.Fields{
