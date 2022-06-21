@@ -373,9 +373,20 @@ func (s *Yacs) Attach(sin, sout, serr *os.File) error {
 	defer stderr.Close()
 
 	// In interactive mode, we keep `stdin` open, otherwise we close it
-	// immediately and only care about `stdout` and `stderr`.
+	// immediately and we only care about `stdout` and `stderr`.
 	if s.Container.Opts.Interactive {
-		go io.Copy(stdin, sin)
+		go func() {
+			io.Copy(stdin, sin)
+
+			if !s.Container.Opts.Tty {
+				// HACK: this isn't how we should handle EOF on stdin but there is an
+				// issue with using the named pipes directly. Closing `stdin` here
+				// isn't enough because the shim keeps it open (on purpose...). We need
+				// "something" to close here so that the shim can close the named pipe
+				// itself but sending the string below isn't what we should be doing...
+				stdin.Write([]byte("\nTHIS_IS_NOT_HOW_WE_SHOULD_CLOSE_A_PIPE\n"))
+			}
+		}()
 	} else {
 		stdin.Close()
 	}
