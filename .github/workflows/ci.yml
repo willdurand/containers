@@ -9,17 +9,47 @@ on:
 jobs:
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Go
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Set up go
       uses: actions/setup-go@v3
       with:
         go-version: 1.18
-    - run: make all
-    - run: "go test ./..."
-    - run: "go vet ./..."
-    - uses: dominikh/staticcheck-action@v1.2.0
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -q -y
+        sudo apt-get install -q -y fuse-overlayfs bats slirp4netns
+
+    - name: Build and install
+      run: |
+        make all
+        sudo make install
+
+    - name: Run tests
+      run: |
+        go test ./...
+        go vet ./...
+
+    - name: Run staticcheck
+      uses: dominikh/staticcheck-action@v1.2.0
       with:
         version: "latest"
         install-go: false
+
+    - name: Run integration tests
+      run: |
+        mkdir -p ~/.run/yacr
+        mkdir -p ~/.run/yacs
+        mkdir -p ~/.run/yaman
+
+        export YACR_ROOT_DIR=~/.run/yacr
+        export YACS_ROOT_DIR=~/.run/yacs
+        export YAMAN_ROOT_DIR=~/.run/yaman
+
+        bats tests/integration/yaman/
