@@ -145,8 +145,8 @@ func (s *Yacs) Start(rootDir string) error {
 	// In theory, `yacs` should only print the socket path when it has fully
 	// initialized itself but that does not seem to work very well so let's wait
 	// a bit to make sure the shim is ready...
-	for i := 0; i < 20; i++ {
-		time.Sleep(50 * time.Millisecond)
+	for i := 0; i < 10; i++ {
+		time.Sleep(100 * time.Millisecond)
 
 		if _, err := s.GetState(); err == nil {
 			s.Container.StartedAt = time.Now()
