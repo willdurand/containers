@@ -8,7 +8,6 @@ load helpers
   assert_success
   cid="$output"
 
-  sleep 1
   run_yaman container list
   assert_success
   assert_output --regexp "$cid(.+)$DOCKER_ALPINE(.+)running"
@@ -16,7 +15,6 @@ load helpers
   run_yaman container stop "$cid"
   assert_success
 
-  sleep 1
   run_yaman container list
   assert_success
   refute_output --partial "$cid"
@@ -28,7 +26,6 @@ load helpers
   run_yaman container delete "$cid"
   assert_success
 
-  sleep 1
   run_yaman container list --all
   assert_success
   refute_output --partial "$cid"
