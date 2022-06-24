@@ -5,6 +5,7 @@ import (
 
 	imagespec "github.com/opencontainers/image-spec/specs-go/v1"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/willdurand/containers/internal/yacs"
 	"github.com/willdurand/containers/internal/yaman/container"
 	"github.com/willdurand/containers/internal/yaman/image"
 	"github.com/willdurand/containers/internal/yaman/shim"
@@ -26,7 +27,7 @@ type ContainerInspect struct {
 		Manifest imagespec.Manifest
 	}
 	Shim struct {
-		shim.YacsState
+		yacs.YacsState
 		Options    shim.ShimOpts
 		SocketPath string
 	}

@@ -47,6 +47,7 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 		if err := slirp.Start(); err != nil {
 			return err
 		}
+		defer slirp.Process.Release()
 
 		if err := ioutil.WriteFile(
 			container.GetSlirp4netnsPidFilePath(state.Bundle),
@@ -66,8 +67,6 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 		}
 
 		logger.WithField("pid", slirp.Process.Pid).Debug("slirp4netns started")
-
-		return slirp.Process.Release()
 	}
 
 	return nil

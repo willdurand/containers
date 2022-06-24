@@ -2,6 +2,7 @@ package shim
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,7 +20,6 @@ import (
 	"sync"
 	"time"
 
-	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/constants"
 	"github.com/willdurand/containers/internal/yacs"
@@ -31,14 +31,8 @@ import (
 type Yacs struct {
 	BaseShim
 	SocketPath string
-	State      *YacsState
+	State      *yacs.YacsState
 	httpClient *http.Client
-}
-
-// YacsState represents the state of the `yacs` shim.
-type YacsState struct {
-	State  runtimespec.State
-	Status *yacs.ContainerStatus
 }
 
 var defaultYacsOpts = ShimOpts{
@@ -104,6 +98,8 @@ func (s *Yacs) Start(rootDir string) error {
 
 	// Prepare a list of arguments for `yacs`.
 	args := []string{
+		// With JSON logs, we can parse the error message in case of an error.
+		"--log-format", "json",
 		"--bundle", s.Container.BaseDir,
 		"--container-id", s.Container.ID,
 		"--container-log-file", s.Container.LogFilePath,
@@ -134,35 +130,29 @@ func (s *Yacs) Start(rootDir string) error {
 
 	data, err := shimCmd.Output()
 	if err != nil {
-		logrus.WithError(err).Error("failed to start shim")
+		logrus.Debug("failed to start shim")
+		if exitError, ok := err.(*exec.ExitError); ok {
+			// We attempt to extract the error message from Yacs.
+			log := make(map[string]string)
+			lines := bytes.Split(exitError.Stderr, []byte("\n"))
+			err := json.Unmarshal(lines[len(lines)-2], &log)
+			if err == nil {
+				return errors.New(log["msg"])
+			}
+		}
 		return err
 	}
 
 	// When `yacs` starts, it should print a unix socket path to the standard
 	// output so that we can communicate with it via a HTTP API.
 	s.SocketPath = strings.TrimSpace(string(data))
-
-	// In theory, `yacs` should only print the socket path when it has fully
-	// initialized itself but that does not seem to work very well so let's wait
-	// a bit to make sure the shim is ready...
-	for i := 0; i < 10; i++ {
-		time.Sleep(100 * time.Millisecond)
-
-		if _, err := s.GetState(); err == nil {
-			s.Container.StartedAt = time.Now()
-			break
-		}
-	}
-
-	if !s.Container.IsStarted() {
-		return fmt.Errorf("failed to start container")
-	}
+	s.Container.StartedAt = time.Now()
 
 	return s.save()
 }
 
 // GetState queries the shim to retrieve its state and returns it.
-func (s *Yacs) GetState() (*YacsState, error) {
+func (s *Yacs) GetState() (*yacs.YacsState, error) {
 	// When a shim is terminated, the `State` property should be non-nil and
 	// that's what we return instead of attempting to communicate with the no
 	// longer existing shim.
@@ -181,7 +171,7 @@ func (s *Yacs) GetState() (*YacsState, error) {
 	}
 	defer resp.Body.Close()
 
-	state := new(YacsState)
+	state := new(yacs.YacsState)
 	if err := json.NewDecoder(resp.Body).Decode(state); err != nil {
 		return nil, err
 	}
@@ -344,7 +334,7 @@ func (s *Yacs) StopContainer() error {
 
 // OpenStreams opens and returns the stdio streams of the container.
 func (s *Yacs) OpenStreams() (*os.File, *os.File, *os.File, error) {
-	stdin, err := os.OpenFile(filepath.Join(s.Container.BaseDir, "0"), os.O_WRONLY, os.ModeNamedPipe)
+	stdin, err := os.OpenFile(filepath.Join(s.Container.BaseDir, "0"), os.O_WRONLY, 0)
 	if err != nil {
 		return nil, nil, nil, err
 	}

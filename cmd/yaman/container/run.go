@@ -52,6 +52,7 @@ func run(cmd *cobra.Command, args []string) error {
 		Hostname:    hostname,
 		Interactive: interactive,
 		Tty:         tty,
+		Detach:      detach,
 	}
 
 	// shim options
@@ -72,14 +73,7 @@ func run(cmd *cobra.Command, args []string) error {
 	// alive).
 	if detach {
 		fmt.Fprintln(os.Stdout, containerId)
-		return nil
 	}
 
-	attachOpts := yaman.AttachOpts{
-		In:  os.Stdin,
-		Out: os.Stdout,
-		Err: os.Stderr,
-	}
-
-	return yaman.Attach(rootDir, containerId, attachOpts)
+	return nil
 }
