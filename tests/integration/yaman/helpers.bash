@@ -8,7 +8,7 @@ DOCKER_ALPINE=docker.io/library/alpine
 QUAY_ALPINE=quay.io/aptible/alpine
 
 function run_yaman() {
-  run timeout --foreground "$TIMEOUT" yaman "$@" 3> /dev/null
+  run timeout --foreground "$TIMEOUT" yaman "$@"
 }
 
 function random_string() {

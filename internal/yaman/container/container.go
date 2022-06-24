@@ -26,6 +26,7 @@ type ContainerOpts struct {
 	Hostname    string
 	Interactive bool
 	Tty         bool
+	Detach      bool
 }
 
 type Container struct {
@@ -146,10 +147,9 @@ func (c *Container) MakeBundle() error {
 	if err != nil {
 		return err
 	}
-
 	c.Config.Hooks = &runtimespec.Hooks{
 		CreateRuntime: []runtimespec.Hook{
-			runtimespec.Hook{
+			{
 				Path: self,
 				Args: []string{self, "container", "hook", "network-setup"},
 			},

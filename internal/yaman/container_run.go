@@ -1,6 +1,8 @@
 package yaman
 
 import (
+	"os"
+
 	"github.com/willdurand/containers/internal/yaman/container"
 	"github.com/willdurand/containers/internal/yaman/image"
 	"github.com/willdurand/containers/internal/yaman/registry"
@@ -37,7 +39,30 @@ func Run(rootDir, imageName string, containerOpts container.ContainerOpts, shimO
 		return "", err
 	}
 
+	attachDone := make(chan error)
+
+	if containerOpts.Detach {
+		close(attachDone)
+	} else {
+		// Attach before starting the container to make sure we can receive all
+		// the data when the container starts.
+		opts := AttachOpts{
+			In:  os.Stdin,
+			Out: os.Stdout,
+			Err: os.Stderr,
+		}
+
+		go func() {
+			attachDone <- shim.Attach(opts.In, opts.Out, opts.Err)
+		}()
+	}
+
 	if err := shim.StartContainer(); err != nil {
+		return "", err
+	}
+
+	err = <-attachDone
+	if err != nil {
 		return "", err
 	}
 

@@ -1,12 +1,14 @@
 tasks:
   - name: bootstrap
     init: |
-      sudo apt-get install -y fuse-overlayfs slirp4netns
+      sudo apt-get install -y fuse-overlayfs slirp4netns bats
 
     before: |
       # This is needed to hide a warning in `sudo make install`.
       sudo git config --global --add safe.directory "$GITPOD_REPO_ROOT"
 
+      echo 'YACR_ROOT_DIR=/tmp/yacr' | sudo tee -a /etc/environment
+      echo 'YACS_ROOT_DIR=/tmp/yacs' | sudo tee -a /etc/environment
       echo 'YAMAN_ROOT_DIR=/tmp/yaman' | sudo tee -a /etc/environment
 
       mkdir -p ~/.run
