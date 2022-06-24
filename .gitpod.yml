@@ -1,7 +1,7 @@
 tasks:
   - name: bootstrap
     init: |
-      sudo apt-get install -y fuse-overlayfs slirp4netns
+      sudo apt-get install -y fuse-overlayfs slirp4netns bats
 
     before: |
       # This is needed to hide a warning in `sudo make install`.
