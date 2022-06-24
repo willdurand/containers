@@ -9,7 +9,6 @@ load helpers
   assert_success
   cid="$output"
 
-  sleep 1
   run_yaman container logs "$cid"
   assert_output "$value"
 
@@ -24,7 +23,6 @@ load helpers
   assert_success
   cid="$output"
 
-  sleep 1
   run_yaman container logs --timestamps "$cid"
   assert_output --regexp "20[0-9]{2}.+ - $value"
 

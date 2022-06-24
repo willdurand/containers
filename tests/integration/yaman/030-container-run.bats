@@ -29,12 +29,10 @@ load helpers
   assert_success
   cid="$output"
 
-  sleep 1
   run_yaman container list
   assert_success
   assert_output --regexp "$cid(.+)running"
 
-  sleep 1
   run_yaman container stop "$cid"
   assert_success
 
@@ -55,7 +53,6 @@ load helpers
   assert_success
   cid="$output"
 
-  sleep 1
   run_yaman container list
   assert_success
   assert_output --regexp "$cid(.+)\ssome-name$"
