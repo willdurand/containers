@@ -4,48 +4,34 @@ import (
 	"fmt"
 
 	"github.com/sevlyar/go-daemon"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yacs"
-	"golang.org/x/sys/unix"
 )
-
-const (
-	programName string = "yacs"
-)
-
-// shimCmd represents the shim command (which is the base command).
-var shimCmd = cli.NewRootCommand(
-	programName,
-	"Yet another container shim",
-)
-
-func init() {
-	// We want to execute a function by default.
-	shimCmd.Run = cli.HandleErrors(run)
-	shimCmd.Args = cobra.NoArgs
-
-	shimCmd.Flags().StringP("bundle", "b", "", "path to the root of the bundle directory")
-	shimCmd.MarkFlagRequired("bundle")
-	shimCmd.Flags().String("container-id", "", "container id")
-	shimCmd.MarkFlagRequired("container-id")
-	shimCmd.Flags().String(
-		"container-log-file",
-		"",
-		`path to the container log file (default: "container.log" in the container base directory)`,
-	)
-	shimCmd.Flags().String("exit-command", "", "path to the exit command to execute when the container has exited")
-	shimCmd.Flags().StringArray("exit-command-arg", []string{}, "argument to pass to the execute command")
-	shimCmd.Flags().String("runtime", "yacr", "container runtime to use")
-	shimCmd.Flags().String("stdio-dir", "", "the directory to use when creating the stdio named pipes")
-}
 
 func main() {
-	cli.Execute(shimCmd)
+	rootCmd := cli.NewRootCommand("yacs", "Yet another container shim")
+	rootCmd.Run = cli.HandleErrors(run)
+	rootCmd.Args = cobra.NoArgs
+
+	rootCmd.Flags().StringP("bundle", "b", "", "path to the root of the bundle directory")
+	rootCmd.MarkFlagRequired("bundle")
+	rootCmd.Flags().String("container-id", "", "container id")
+	rootCmd.MarkFlagRequired("container-id")
+	rootCmd.Flags().String("container-log-file", "", `path to the container log file (default: "container.log")`)
+	rootCmd.Flags().String("exit-command", "", "path to the exit command executed when the container has exited")
+	rootCmd.Flags().StringArray("exit-command-arg", []string{}, "argument to pass to the execute command")
+	rootCmd.Flags().String("runtime", "yacr", "container runtime to use")
+	rootCmd.Flags().String("stdio-dir", "", "the directory to use when creating the stdio named pipes")
+
+	cli.Execute(rootCmd)
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	// The code below (until `ctx.Reborn()`) is shared between a "parent" and a
+	// "child" process. Both initialize Yacs but most of the logic lives in the
+	// "child" process.
+
 	shim, err := yacs.NewShimFromFlags(cmd.Flags())
 	if err != nil {
 		return err
@@ -56,38 +42,26 @@ func run(cmd *cobra.Command, args []string) error {
 		PidFilePerm: 0o644,
 	}
 
-	parent, err := ctx.Reborn()
+	child, err := ctx.Reborn()
 	if err != nil {
 		return fmt.Errorf("failed to create daemon: %w", err)
 	}
-	if parent != nil {
+
+	// This block is the "parent" process (in a fork/exec model). We wait until
+	//receive a message from the "child" process.
+	if child != nil {
+		if err := shim.Err(); err != nil {
+			return err
+		}
+
+		// When the shim has started successfully, we print the unix socket
+		// address so that another program can interact with the shim.
 		fmt.Println(shim.SocketPath())
 		return nil
 	}
+
+	// This is the "child" process.
 	defer ctx.Release()
 
-	logger := logrus.WithField("id", shim.ContainerID)
-
-	// The daemon shim has started. We cannot log information to stdout/stderr so
-	// we are going to use `logger.Panic()` in case of an error.
-	logger.Info("daemon started")
-
-	// Make this daemon a subreaper so that it "adopts" orphaned descendants,
-	// see: https://man7.org/linux/man-pages/man2/prctl.2.html
-	if err := unix.Prctl(unix.PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0); err != nil {
-		logger.WithError(err).Panic("prctl() failed")
-	}
-
-	// Call the OCI runtime to create the container.
-	go shim.CreateContainer(logger)
-
-	// Create the HTTP API to be able to interact with the shim.
-	go shim.CreateHttpServer(logger)
-
-	<-shim.Exit
-
-	shim.Destroy()
-	logger.Info("stopped")
-
-	return nil
+	return shim.Run()
 }

@@ -3,7 +3,11 @@ package yacs
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
+	"io/fs"
 	"net"
 	"os"
 	"os/exec"
@@ -17,33 +21,22 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// CreateContainer creates a new container when the shim is started.
+const (
+	consoleSocketName    = "console.sock"
+	containerPidFileName = "container.pid"
+)
+
+// createContainer creates a new container when the shim is started.
 //
 // The container is created but not started. This function also creates pipes to
 // capture the container `stdout` and `stderr` streams and write their contents
 // to files.
-func (y *Yacs) CreateContainer(logger *logrus.Entry) {
-	defer func() {
-		// In case of an error during the creation of the container, we call the
-		// OCI runtime to (force) delete the container.
-		if y.containerStatus == nil {
-			del := exec.Command(y.runtimePath, append(y.runtimeArgs(), []string{
-				"delete", y.ContainerID, "--force",
-			}...)...)
-			logger.WithField("command", del.String()).Debug("execute delete command")
-
-			if err := del.Run(); err != nil {
-				logger.WithError(err).Error("failed to force delete container")
-			}
-
-			y.Destroy()
-		}
-	}()
-
+func (y *Yacs) createContainer() {
 	// Create FIFOs for the container standard IOs.
 	for _, name := range []string{"0", "1", "2"} {
-		if err := unix.Mkfifo(filepath.Join(y.stdioDir, name), 0o600); err != nil {
-			logger.WithError(err).Panicf("failed to make fifo '%s'", name)
+		if err := unix.Mkfifo(filepath.Join(y.stdioDir, name), 0o600); err != nil && !errors.Is(err, fs.ErrExist) {
+			y.containerReady <- fmt.Errorf("mkfifo: %w", err)
+			return
 		}
 	}
 
@@ -51,19 +44,22 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	// https://github.com/golang/go/issues/33050#issuecomment-510308419
 	sin, err := os.OpenFile(filepath.Join(y.stdioDir, "0"), os.O_RDWR, 0)
 	if err != nil {
-		logger.WithError(err).Panic("failed to open stdin fifo")
+		y.containerReady <- fmt.Errorf("open stdin: %w", err)
+		return
 	}
 	defer sin.Close()
 
 	sout, err := os.OpenFile(filepath.Join(y.stdioDir, "1"), os.O_RDWR, 0)
 	if err != nil {
-		logger.WithError(err).Panic("failed to open stdout fifo")
+		y.containerReady <- fmt.Errorf("open stdout: %w", err)
+		return
 	}
 	defer sout.Close()
 
 	serr, err := os.OpenFile(filepath.Join(y.stdioDir, "2"), os.O_RDWR, 0)
 	if err != nil {
-		logger.WithError(err).Panic("failed to open stderr fifo")
+		y.containerReady <- fmt.Errorf("open stderr: %w", err)
+		return
 	}
 	defer serr.Close()
 
@@ -71,7 +67,7 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	runtimeArgs := append(
 		[]string{y.runtime},
 		append(y.runtimeArgs(), []string{
-			"create", y.ContainerID,
+			"create", y.containerID,
 			"--bundle", y.bundleDir,
 			"--pid-file", y.containerPidFilePath(),
 		}...)...,
@@ -82,7 +78,7 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 
 	// By default, we pass the standard input but the outputs are configured
 	// depending on whether the container should create a PTY or not.
-	runtimeCommand := exec.Cmd{
+	createCommand := exec.Cmd{
 		Path: y.runtimePath,
 		Args: runtimeArgs,
 	}
@@ -93,7 +89,7 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	if y.containerSpec.Process.Terminal {
 		ln, err := net.Listen("unix", y.consoleSocketPath())
 		if err != nil {
-			logrus.WithError(err).Panic("failed to listen to console socket")
+			y.containerReady <- fmt.Errorf("listen (console socket): %w", err)
 		}
 		defer ln.Close()
 
@@ -120,8 +116,6 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 				logrus.WithError(err).Panic("failed to receive file descriptor")
 			}
 
-			logrus.Debug("got a ptm")
-
 			// Now we can redirect the streams: first the standard input to the PTY
 			// input, then the PTY output to the standard output.
 			go io.Copy(ptm, sin)
@@ -131,9 +125,10 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		// We only use the log file when the container didn't set up a terminal
 		// because that's already complicated enough. That being said, maybe we
 		// should log the PTY output as well in the future?
-		logFile, err := log.NewFile(y.ContainerLogFilePath)
+		logFile, err := log.NewFile(y.containerLogFilePath)
 		if err != nil {
-			logger.WithError(err).Panic("failed to create log file")
+			y.containerReady <- fmt.Errorf("open (log file): %w", err)
+			return
 		}
 		defer logFile.Close()
 
@@ -141,31 +136,34 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		// the content to both the log file and the stdout FIFO.
 		outRead, outWrite, err := os.Pipe()
 		if err != nil {
-			logger.WithError(err).Panic("failed to create stdout pipe")
+			y.containerReady <- fmt.Errorf("stdout pipe: %w", err)
+			return
 		}
 		defer outWrite.Close()
 
-		runtimeCommand.Stdout = outWrite
+		createCommand.Stdout = outWrite
 		go copyStd("stdout", outRead, logFile, sout)
 
 		// We create a pipe to pump the stderr from the container and then we write
 		// the content to both the log file and the stderr FIFO.
 		errRead, errWrite, err := os.Pipe()
 		if err != nil {
-			logger.WithError(err).Panic("failed to create stderr pipe")
+			y.containerReady <- fmt.Errorf("stderr pipe: %w", err)
+			return
 		}
 		defer errWrite.Close()
 
-		runtimeCommand.Stderr = errWrite
+		createCommand.Stderr = errWrite
 		go copyStd("stderr", errRead, logFile, serr)
 
 		inRead, inWrite, err := os.Pipe()
 		if err != nil {
-			logger.WithError(err).Panic("failed to create stdin pipe")
+			y.containerReady <- fmt.Errorf("stdin pipe: %w", err)
+			return
 		}
 		defer inRead.Close()
 
-		runtimeCommand.Stdin = inRead
+		createCommand.Stdin = inRead
 		go func() {
 			defer inWrite.Close()
 
@@ -181,14 +179,16 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		}()
 	}
 
-	logger.WithFields(logrus.Fields{
-		"command": runtimeCommand.String(),
+	logrus.WithFields(logrus.Fields{
+		"command": createCommand.String(),
 	}).Info("creating container")
 
-	if err := runtimeCommand.Run(); err != nil {
-		logger.WithError(err).Panic("failed to create container")
+	if err := createCommand.Run(); err != nil {
+		y.containerReady <- maybeReturnRuntimeError(y, err)
+		return
 	}
-	logger.Debug("container created")
+
+	logrus.Debug("container created")
 
 	// The runtime should have written the container's PID to a file because
 	// that's how the runtime passes this value to the shim. The shim needs the
@@ -196,23 +196,24 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 	containerPidFilePath := y.containerPidFilePath()
 	data, err := os.ReadFile(containerPidFilePath)
 	if err != nil {
-		logger.WithError(err).Panicf("failed to read '%s'", containerPidFilePath)
+		logrus.WithError(err).Panicf("failed to read '%s'", containerPidFilePath)
 	}
 	containerPid, err := strconv.Atoi(string(bytes.TrimSpace(data)))
 	if err != nil {
-		logger.WithError(err).Panicf("failed to parse pid from '%s'", containerPidFilePath)
+		logrus.WithError(err).Panicf("failed to parse pid from '%s'", containerPidFilePath)
 	}
 
 	// At this point, the shim knows that the runtime has successfully created a
 	// container. The shim's API can be used to interact with the container now.
 	y.setContainerStatus(&ContainerStatus{PID: containerPid})
+	y.containerReady <- nil
 
 	// Wait for the termination of the container process.
 	var wstatus syscall.WaitStatus
 	var rusage syscall.Rusage
 	_, err = syscall.Wait4(containerPid, &wstatus, 0, &rusage)
 	if err != nil {
-		logger.WithError(err).Panic("wait4() failed")
+		logrus.WithError(err).Panic("wait4() failed")
 	}
 
 	y.setContainerStatus(&ContainerStatus{
@@ -220,20 +221,41 @@ func (y *Yacs) CreateContainer(logger *logrus.Entry) {
 		WaitStatus: &wstatus,
 	})
 
-	logger.WithFields(logrus.Fields{
+	logrus.WithFields(logrus.Fields{
 		"exitStatus": y.containerStatus.ExitStatus(),
 	}).Info("container exited")
 
 	if y.exitCommand != "" {
 		exit := exec.Command(y.exitCommand, y.exitCommandArgs...)
-		logger.WithField("command", exit.String()).Debug("execute exit command")
+		logrus.WithField("command", exit.String()).Debug("execute exit command")
 
 		if err := exit.Run(); err != nil {
-			logger.WithError(err).Warn("exit command failed")
+			logrus.WithError(err).Warn("exit command failed")
 		}
 	}
 }
 
+// containerPidFilePath returns the path to the file that contains the PID of
+// the container. Usually, this path should be passed to the OCI runtime with a
+// CLI flag (`--pid-file`).
+func (y *Yacs) containerPidFilePath() string {
+	return filepath.Join(y.baseDir, containerPidFileName)
+}
+
+// consoleSocketPath returns the path to the console socket that is used by the
+// container when it must create a PTY.
+func (y *Yacs) consoleSocketPath() string {
+	return filepath.Join(y.baseDir, consoleSocketName)
+}
+
+// setContainerStatus sets an instance of `ContainerStatus` to the shim
+// configuration.
+func (y *Yacs) setContainerStatus(status *ContainerStatus) {
+	y.containerStatus = status
+}
+
+// copyStd copies the content of `src` into the provided log file and FIFO. This
+// is a ugly version of a `MultiWriter` + `Copy()` for Yacs.
 func copyStd(name string, src *os.File, logFile *log.LogFile, fifo *os.File) {
 	defer src.Close()
 
@@ -243,4 +265,32 @@ func copyStd(name string, src *os.File, logFile *log.LogFile, fifo *os.File) {
 		fifo.WriteString(m + "\n")
 		logFile.WriteMessage(name, m)
 	}
+}
+
+// maybeReturnRuntimeError reads the runtime log file in order to return the
+// last message logged by the runtime as an error. If anything goes wrong, the
+// original error is returned instead.
+func maybeReturnRuntimeError(y *Yacs, originalError error) error {
+	logFile, err := os.Open(y.runtimeLogFilePath())
+	if err != nil {
+		return originalError
+	}
+	defer logFile.Close()
+
+	var lastLine []byte
+	scanner := bufio.NewScanner(logFile)
+	for scanner.Scan() {
+		lastLine = scanner.Bytes()
+	}
+
+	log := make(map[string]string)
+	if err := json.Unmarshal(lastLine, &log); err != nil {
+		return originalError
+	}
+
+	if msg := log["msg"]; msg != "" {
+		return errors.New(msg)
+	}
+
+	return originalError
 }

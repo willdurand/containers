@@ -52,4 +52,6 @@ jobs:
         export YACS_ROOT_DIR=~/.run/yacs
         export YAMAN_ROOT_DIR=~/.run/yaman
 
-        bats tests/integration/yaman/
+        make alpine_bundle > /dev/null
+        
+        bats tests/integration/yacs/ tests/integration/yaman/

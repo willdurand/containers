@@ -83,16 +83,16 @@ We can use `curl` to interact with the shim:
 ```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
-  "id": "alpine-1",
-  "runtime": "yacr",
-  "state": {
+  "ID": "alpine-1",
+  "Runtime": "yacr",
+  "State": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
     "status": "created",
     "pid": 44488,
     "bundle": "/tmp/alpine-bundle"
   },
-  "status": {}
+  "Status": {}
 }
 ```
 
@@ -101,16 +101,16 @@ We can now start the container by sending the `start` command (`cmd`) in a `POST
 ```console
 $ curl -X POST -d 'cmd=start' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
-  "id": "alpine-1",
-  "runtime": "yacr",
-  "state": {
+  "ID": "alpine-1",
+  "Runtime": "yacr",
+  "State": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
     "status": "running",
     "pid": 44488,
     "bundle": "/tmp/alpine-bundle"
   },
-  "status": {}
+  "Status": {}
 }
 ```
 
@@ -154,16 +154,16 @@ We can also use the shim HTTP API to send a signal to the container:
 ```console
 $ curl -X POST -d 'cmd=kill' --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
-  "id": "alpine-1",
-  "runtime": "yacr",
-  "state": {
+  "ID": "alpine-1",
+  "Runtime": "yacr",
+  "State": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
     "status": "running",
     "pid": 44488,
     "bundle": "/tmp/alpine-bundle"
   },
-  "status": {}
+  "Status": {}
 }
 ```
 
@@ -187,24 +187,31 @@ Let's query the state of the container again:
 ```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
 {
-  "id": "alpine-1",
-  "runtime": "yacr",
-  "state": {
+  "ID": "alpine-1",
+  "Runtime": "yacr",
+  "State": {
     "ociVersion": "1.0.2",
     "id": "alpine-1",
     "status": "stopped",
     "pid": 44488,
     "bundle": "/tmp/alpine-bundle"
   },
-  "status": {
+  "Status": {
     "exitStatus": 123,
     "exited": true,
-    "pid": 44488
+    "pid": 44488,
+    "waitStatus": 31488
   }
 }
 ```
 
 The container is now "stopped". The `exitStatus` is `123` and matches what we defined in the `hello-loop.sh` file created previously. Note also that the shim is still alive and we still have access to the container's full state and stdout/stderr logs. This is one of the reasons why shims are used.
+
+```console
+yacr list
+ID          STATUS      CREATED                PID         BUNDLE
+alpine-1    stopped     2022-06-03T22:00:00Z   0           /tmp/alpine-bundle
+```
 
 We can now delete the container. This API request should not return anything (HTTP 204):
 
@@ -216,7 +223,7 @@ If we query the state of the shim again, it should indicate that the container d
 
 ```console
 $ curl --unix-socket /home/gitpod/.run/yacs/alpine-1/shim.sock http://shim/
-container 'alpine-1' does not exist
+container does not exist
 ```
 
 Finally, we can terminate the shim with a `DELETE` HTTP request:
