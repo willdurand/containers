@@ -60,3 +60,9 @@ load helpers
   run_yaman container stop "$cid"
   assert_success
 }
+
+@test "yaman container run image without /etc/resolv.conf" {
+  run_yaman container run --rm "$DOCKER_HELLO_WORLD"
+  assert_success
+  assert_output --partial "This message shows that your installation appears to be working correctly"
+}

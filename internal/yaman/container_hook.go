@@ -63,7 +63,7 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 			[]byte("nameserver 10.0.2.3\n"),
 			0o644,
 		); err != nil {
-			return err
+			logger.WithError(err).Warn("failed to write /etc/resolv.conf")
 		}
 
 		logger.WithField("pid", slirp.Process.Pid).Debug("slirp4netns started")
