@@ -40,7 +40,9 @@ func NewRootCommand(programName, shortDescription string) *cobra.Command {
 }
 
 func Execute(cmd *cobra.Command) {
-	cmd.Execute()
+	if err := cmd.Execute(); err != nil {
+		exit(err)
+	}
 }
 
 func HandleErrors(f func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) {
@@ -52,13 +54,21 @@ func HandleErrors(f func(cmd *cobra.Command, args []string) error) func(cmd *cob
 				PrintUserError(err)
 			}
 
-			os.Exit(1)
+			exit(err)
 		}
 	}
 }
 
 func PrintUserError(err error) {
 	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+}
+
+func exit(err error) {
+	if exitCodeError, ok := err.(ExitCodeError); ok {
+		os.Exit(exitCodeError.ExitCode)
+	}
+
+	os.Exit(125)
 }
 
 // logToStderr returns true when the logger is configured to write to stderr,

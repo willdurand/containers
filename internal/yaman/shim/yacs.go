@@ -16,16 +16,20 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/constants"
 	"github.com/willdurand/containers/internal/yacs"
 	"github.com/willdurand/containers/internal/yaman/container"
 	"golang.org/x/term"
 )
+
+var failedToRetrieveExecutable = regexp.MustCompile("failed to retrieve executable")
 
 // Yacs represents an instance of the `yacs` shim.
 type Yacs struct {
@@ -135,8 +139,7 @@ func (s *Yacs) Start(rootDir string) error {
 			// We attempt to extract the error message from Yacs.
 			log := make(map[string]string)
 			lines := bytes.Split(exitError.Stderr, []byte("\n"))
-			err := json.Unmarshal(lines[len(lines)-2], &log)
-			if err == nil {
+			if err := json.Unmarshal(lines[len(lines)-2], &log); err == nil {
 				return errors.New(log["msg"])
 			}
 		}
@@ -227,16 +230,7 @@ func (s *Yacs) Terminate() error {
 	s.SocketPath = ""
 	s.Container.ExitedAt = time.Now()
 
-	data, err := json.Marshal(s)
-	if err != nil {
-		return err
-	}
-
-	if err := ioutil.WriteFile(s.stateFilePath(), data, 0o644); err != nil {
-		return err
-	}
-
-	return nil
+	return s.save()
 }
 
 // Destroy destroys a stopped container, otherwise an error will be returned.
@@ -298,9 +292,17 @@ func (s *Yacs) CopyLogs(stdout io.Writer, stderr io.Writer, withTimestamps bool)
 // StartContainer tells the shim to start a container that was previously
 // created.
 func (s *Yacs) StartContainer() error {
-	return s.sendCommand(url.Values{
+	err := s.sendCommand(url.Values{
 		"cmd": []string{"start"},
 	})
+	if err != nil {
+		if failedToRetrieveExecutable.MatchString(err.Error()) {
+			// Remove the prefix set by `sendCommand`.
+			return cli.ExitCodeError{Message: err.Error()[7:], ExitCode: 127}
+		}
+	}
+
+	return err
 }
 
 // StopContainer tells the shim to stop the container by sending a SIGTERM
@@ -435,6 +437,7 @@ func (s *Yacs) sendCommand(values url.Values) error {
 		if err != nil {
 			return err
 		}
+
 		return fmt.Errorf("%s: %s", values.Get("cmd"), data)
 	}
 

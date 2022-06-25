@@ -9,19 +9,27 @@ import (
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
+// RunResult represents the return value of the `Run` function.
+type RunResult struct {
+	ContainerID string
+	ExitStatus  int
+}
+
 // Run runs a command in a new container. We return the ID of the container on
 // success and an error otherwise.
-func Run(rootDir, imageName string, containerOpts container.ContainerOpts, shimOpts shim.ShimOpts) (string, error) {
+func Run(rootDir, imageName string, containerOpts container.ContainerOpts, shimOpts shim.ShimOpts) (RunResult, error) {
+	var rr RunResult
+
 	img, err := image.New(rootDir, imageName)
 	if err != nil {
-		return "", err
+		return rr, err
 	}
 
 	pullOpts := registry.PullOpts{
 		Policy: registry.PullMissing,
 	}
 	if err := registry.Pull(img, pullOpts); err != nil {
-		return "", err
+		return rr, err
 	}
 
 	container := container.New(rootDir, img, containerOpts)
@@ -31,12 +39,12 @@ func Run(rootDir, imageName string, containerOpts container.ContainerOpts, shimO
 		}
 	}()
 	if err := container.MakeBundle(); err != nil {
-		return "", err
+		return rr, err
 	}
 
 	shim := shim.New(container, shimOpts)
 	if err := shim.Start(rootDir); err != nil {
-		return "", err
+		return rr, err
 	}
 
 	attachDone := make(chan error)
@@ -58,13 +66,23 @@ func Run(rootDir, imageName string, containerOpts container.ContainerOpts, shimO
 	}
 
 	if err := shim.StartContainer(); err != nil {
-		return "", err
+		return rr, err
 	}
 
 	err = <-attachDone
 	if err != nil {
-		return "", err
+		return rr, err
 	}
 
-	return container.ID, nil
+	state, err := shim.GetState()
+	if err != nil {
+		return rr, err
+	}
+
+	rr = RunResult{
+		ContainerID: container.ID,
+		ExitStatus:  state.Status.ExitStatus(),
+	}
+
+	return rr, nil
 }

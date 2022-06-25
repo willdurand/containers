@@ -278,8 +278,6 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 	if err := ipc.AwaitMessage(conn, ipc.START_CONTAINER); err != nil {
 		return err
 	}
-	conn.Close()
-	listener.Close()
 
 	// Hooks to be run after the start operation is called but before the
 	// container process is started.
@@ -297,8 +295,18 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 
 	argv0, err := exec.LookPath(process.Args[0])
 	if err != nil {
-		return fmt.Errorf("failed to retrieve executable: %w", err)
+		if err := ipc.SendMessage(conn, fmt.Sprintf("failed to retrieve executable: %s", err)); err != nil {
+			return err
+		}
+		return err
 	}
+
+	if err := ipc.SendMessage(conn, ipc.OK); err != nil {
+		return err
+	}
+
+	conn.Close()
+	listener.Close()
 
 	if err := syscall.Exec(argv0, process.Args, process.Env); err != nil {
 		return fmt.Errorf("failed to exec %v: %w", process.Args, err)
