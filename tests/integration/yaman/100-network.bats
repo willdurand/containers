@@ -21,3 +21,9 @@ load helpers
   assert_success
   assert_output --partial "1 packets transmitted, 1 packets received"
 }
+
+@test "/etc/resolv.conf should be created" {
+  run_yaman container run --rm "$DOCKER_ALPINE" -- cat /etc/resolv.conf
+  assert_success
+  assert_output "nameserver 10.0.2.3"
+}
