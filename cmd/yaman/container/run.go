@@ -61,9 +61,16 @@ func run(cmd *cobra.Command, args []string) error {
 		shimOpts.Runtime = runtime
 	}
 
-	containerId, err := yaman.Run(rootDir, args[0], containerOpts, shimOpts)
+	result, err := yaman.Run(rootDir, args[0], containerOpts, shimOpts)
 	if err != nil {
-		return err
+		// If we do not have an `ExitCodeError` already, set the exit code to
+		// `126` to indicate a problem coming from Yaman.
+		switch err.(type) {
+		case cli.ExitCodeError:
+			return err
+		default:
+			return cli.ExitCodeError{Message: err.Error(), ExitCode: 126}
+		}
 	}
 
 	// In detached mode, we print the container ID to the standard output and we
@@ -72,8 +79,10 @@ func run(cmd *cobra.Command, args []string) error {
 	// exited but if the command is a daemon, the container should still be
 	// alive).
 	if detach {
-		fmt.Fprintln(os.Stdout, containerId)
+		fmt.Fprintln(os.Stdout, result.ContainerID)
+		return nil
 	}
 
+	os.Exit(result.ExitStatus)
 	return nil
 }

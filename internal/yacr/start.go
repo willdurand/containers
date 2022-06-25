@@ -1,7 +1,10 @@
 package yacr
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 
 	"github.com/sirupsen/logrus"
@@ -11,7 +14,6 @@ import (
 )
 
 func Start(rootDir, containerId string) error {
-
 	container, err := container.LoadWithBundleConfig(rootDir, containerId)
 	if err != nil {
 		return err
@@ -50,8 +52,20 @@ func Start(rootDir, containerId string) error {
 		return err
 	}
 
+	// The container process should send a "OK" right before it calls exec(3) OR
+	// an error if something went wrong.
+	msg, err := ioutil.ReadAll(conn)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(msg, []byte(ipc.OK)) {
+		return errors.New(string(msg))
+	}
+
 	logrus.WithFields(logrus.Fields{
 		"id": container.ID(),
-	}).Info("start: (probably) ok")
+	}).Info("start: ok")
+
 	return nil
 }

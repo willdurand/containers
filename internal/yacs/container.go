@@ -225,6 +225,12 @@ func (y *Yacs) createContainer() {
 		"exitStatus": y.containerStatus.ExitStatus(),
 	}).Info("container exited")
 
+	// Close stdio streams in case a container manager is attached (this will
+	// notify this manager that the container has exited).
+	sin.Close()
+	sout.Close()
+	serr.Close()
+
 	if y.exitCommand != "" {
 		exit := exec.Command(y.exitCommand, y.exitCommandArgs...)
 		logrus.WithField("command", exit.String()).Debug("execute exit command")
