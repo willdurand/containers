@@ -129,7 +129,7 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
 ```json
 {
   "Id": "86f57361baf946f7b5e3d20b5fdde4ae",
-  "Root": "/tmp/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae",
+  "Root": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae",
   "Config": {
     "ociVersion": "1.0.2",
     "process": {
@@ -147,7 +147,7 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
       "cwd": "/"
     },
     "root": {
-      "path": "/tmp/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae/rootfs"
+      "path": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae/rootfs"
     },
     "hostname": "86f57361baf946f7b5e3d20b5fdde4ae",
     "mounts": [
@@ -283,7 +283,7 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
     "Hostname": "docker.io",
     "Name": "library/alpine",
     "Version": "latest",
-    "BaseDir": "/tmp/yaman/images/docker.io/library/alpine/latest",
+    "BaseDir": "/run/user/1000/yaman/images/docker.io/library/alpine/latest",
     "Config": {
       "created": "2022-05-23T19:19:31.970967174Z",
       "architecture": "amd64",
@@ -339,13 +339,13 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
       "id": "86f57361baf946f7b5e3d20b5fdde4ae",
       "status": "running",
       "pid": 103614,
-      "bundle": "/tmp/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae"
+      "bundle": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae"
     },
     "Status": {},
     "Options": {
       "Runtime": "yacr"
     },
-    "SocketPath": "/tmp/yacs/86f57361baf946f7b5e3d20b5fdde4ae/shim.sock"
+    "SocketPath": "/run/user/1000/yacs/86f57361baf946f7b5e3d20b5fdde4ae/shim.sock"
   }
 }
 ```
