@@ -80,11 +80,6 @@ Create an interactive container (that keeps `stdin` open) with `--interactive`:
 ```console
 $ echo 'hello there' | yaman c run --interactive docker.io/library/alpine -- cat
 hello there
-^C
-
-$ yaman c list
-CONTAINER ID                       IMAGE                             COMMAND   CREATED          STATUS      NAME
-103493075a744ec0b47a3a9a6aed473e   docker.io/library/alpine:latest   cat       10 minutes ago   running     elated_bell
 ```
 
 ##### `--tty` | `-t`
@@ -133,8 +128,8 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
 
 ```json
 {
-  "Id": "2be09afa2b3b47c2a9975017aa2913fc",
-  "Root": "/run/user/1000/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc",
+  "Id": "86f57361baf946f7b5e3d20b5fdde4ae",
+  "Root": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae",
   "Config": {
     "ociVersion": "1.0.2",
     "process": {
@@ -142,16 +137,19 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "uid": 0,
         "gid": 0
       },
-      "args": ["sleep", "1000"],
+      "args": [
+        "sleep",
+        "1000"
+      ],
       "env": [
         "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       ],
       "cwd": "/"
     },
     "root": {
-      "path": "/run/user/1000/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc/rootfs"
+      "path": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae/rootfs"
     },
-    "hostname": "2be09afa2b3b47c2a9975017aa2913fc",
+    "hostname": "86f57361baf946f7b5e3d20b5fdde4ae",
     "mounts": [
       {
         "destination": "/proc",
@@ -162,7 +160,12 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "destination": "/dev",
         "type": "tmpfs",
         "source": "tmpfs",
-        "options": ["nosuid", "strictatime", "mode=755", "size=65536k"]
+        "options": [
+          "nosuid",
+          "strictatime",
+          "mode=755",
+          "size=65536k"
+        ]
       },
       {
         "destination": "/dev/pts",
@@ -180,26 +183,47 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "destination": "/dev/shm",
         "type": "tmpfs",
         "source": "shm",
-        "options": ["nosuid", "noexec", "nodev", "mode=1777", "size=65536k"]
+        "options": [
+          "nosuid",
+          "noexec",
+          "nodev",
+          "mode=1777",
+          "size=65536k"
+        ]
       },
       {
         "destination": "/dev/mqueue",
         "type": "mqueue",
         "source": "mqueue",
-        "options": ["nosuid", "noexec", "nodev"]
+        "options": [
+          "nosuid",
+          "noexec",
+          "nodev"
+        ]
       },
       {
         "destination": "/sys",
         "type": "none",
         "source": "/sys",
-        "options": ["rbind", "nosuid", "noexec", "nodev", "ro"]
+        "options": [
+          "rbind",
+          "nosuid",
+          "noexec",
+          "nodev",
+          "ro"
+        ]
       }
     ],
     "hooks": {
       "createRuntime": [
         {
-          "path": "/vagrant/bin/yaman",
-          "args": ["/vagrant/bin/yaman", "container", "hook", "CreateRuntime"]
+          "path": "/workspace/containers/bin/yaman",
+          "args": [
+            "/workspace/containers/bin/yaman",
+            "container",
+            "hook",
+            "network-setup"
+          ]
         }
       ]
     },
@@ -207,14 +231,14 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
       "uidMappings": [
         {
           "containerID": 0,
-          "hostID": 1000,
+          "hostID": 0,
           "size": 1
         }
       ],
       "gidMappings": [
         {
           "containerID": 0,
-          "hostID": 1000,
+          "hostID": 0,
           "size": 1
         }
       ],
@@ -241,15 +265,19 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
     }
   },
   "Options": {
-    "Name": "funny_hopper",
-    "Command": ["sleep", "1000"],
-    "Remove": false,
+    "Name": "upbeat_mclaren",
+    "Command": [
+      "sleep",
+      "1000"
+    ],
+    "Remove": true,
     "Hostname": "",
     "Interactive": false,
-    "Tty": false
+    "Tty": false,
+    "Detach": true
   },
-  "Created": "2022-06-20T06:39:16.413157393Z",
-  "Started": "2022-06-20T06:39:16.698138744Z",
+  "Created": "2022-06-25T14:16:12.982091802Z",
+  "Started": "2022-06-25T14:16:13.020406768Z",
   "Exited": "0001-01-01T00:00:00Z",
   "Image": {
     "Hostname": "docker.io",
@@ -264,7 +292,9 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
         "Env": [
           "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
         ],
-        "Cmd": ["/bin/sh"]
+        "Cmd": [
+          "/bin/sh"
+        ]
       },
       "rootfs": {
         "type": "layers",
@@ -302,18 +332,20 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
     }
   },
   "Shim": {
+    "ID": "86f57361baf946f7b5e3d20b5fdde4ae",
+    "Runtime": "yacr",
     "State": {
       "ociVersion": "1.0.2",
-      "id": "2be09afa2b3b47c2a9975017aa2913fc",
+      "id": "86f57361baf946f7b5e3d20b5fdde4ae",
       "status": "running",
-      "pid": 2190,
-      "bundle": "/run/user/1000/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc"
+      "pid": 103614,
+      "bundle": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae"
     },
     "Status": {},
     "Options": {
       "Runtime": "yacr"
     },
-    "SocketPath": "/run/user/1000/yacs/2be09afa2b3b47c2a9975017aa2913fc/shim.sock"
+    "SocketPath": "/run/user/1000/yacs/86f57361baf946f7b5e3d20b5fdde4ae/shim.sock"
   }
 }
 ```
