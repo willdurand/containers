@@ -1,15 +1,13 @@
 package yaman
 
 import (
-	"os"
-
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
 type AttachOpts struct {
-	In  *os.File
-	Out *os.File
-	Err *os.File
+	Stdin  bool
+	Stdout bool
+	Stderr bool
 }
 
 func Attach(rootDir, id string, opts AttachOpts) error {
@@ -18,5 +16,5 @@ func Attach(rootDir, id string, opts AttachOpts) error {
 		return err
 	}
 
-	return shim.Attach(opts.In, opts.Out, opts.Err)
+	return shim.Attach(opts.Stdin, opts.Stdout, opts.Stderr)
 }

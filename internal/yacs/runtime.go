@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -46,9 +47,15 @@ func (y *Yacs) Kill(signal string) error {
 	return err
 }
 
-// Sigkill calls the OCI runtime to send a `SIGKILL` signal to the container.
+// Sigkill calls the OCI runtime to send a `SIGKILL` signal to the container. If
+// that does not work, e.g., because the container is not running, a `SIGKILL`
+// is sent directly using a syscall.
 func (y *Yacs) Sigkill() error {
-	return y.Kill("SIGKILL")
+	if err := y.Kill("SIGKILL"); err != nil {
+		return syscall.Kill(y.containerStatus.PID, syscall.SIGKILL)
+	}
+
+	return nil
 }
 
 // Delete calls the OCI runtime to delete a container. It can be used to force

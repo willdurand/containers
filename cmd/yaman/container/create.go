@@ -16,19 +16,26 @@ import (
 
 func init() {
 	cmd := &cobra.Command{
-		Use:   "run <image> [<command> [<args>...]]",
-		Short: "Run a command in a new container",
-		Run:   cli.HandleErrors(run),
+		Use:   "create <image> [<command> [<args>...]]",
+		Short: "Create a new container",
+		Run:   cli.HandleErrors(create),
 		Args:  cobra.MinimumNArgs(1),
 	}
-	cmd.Flags().BoolP("detach", "d", false, "run container in background and print container ID")
 	addCreateFlagsToCommand(cmd)
 	containerCommand.AddCommand(cmd)
 }
 
-func run(cmd *cobra.Command, args []string) error {
+func addCreateFlagsToCommand(cmd *cobra.Command) {
+	cmd.Flags().String("hostname", "", "set the container hostname")
+	cmd.Flags().BoolP("interactive", "i", false, "keep stdin open")
+	cmd.Flags().String("name", "", "assign a name to the container")
+	cmd.Flags().Bool("rm", false, "automatically remove the container when it exits")
+	cmd.Flags().String("runtime", "", "runtime to use for this container")
+	cmd.Flags().BoolP("tty", "t", false, "allocate a pseudo-tty")
+}
+
+func create(cmd *cobra.Command, args []string) error {
 	rootDir, _ := cmd.Flags().GetString("root")
-	detach, _ := cmd.Flags().GetBool("detach")
 
 	// container options
 	name, _ := cmd.Flags().GetString("name")
@@ -47,7 +54,7 @@ func run(cmd *cobra.Command, args []string) error {
 		Hostname:    hostname,
 		Interactive: interactive,
 		Tty:         tty,
-		Detach:      detach,
+		Detach:      true,
 	}
 
 	// shim options
@@ -56,28 +63,11 @@ func run(cmd *cobra.Command, args []string) error {
 		shimOpts.Runtime = runtime
 	}
 
-	result, err := yaman.Run(rootDir, args[0], containerOpts, shimOpts)
+	_, container, err := yaman.Create(rootDir, args[0], containerOpts, shimOpts)
 	if err != nil {
-		// If we do not have an `ExitCodeError` already, set the exit code to
-		// `126` to indicate a problem coming from Yaman.
-		switch err.(type) {
-		case cli.ExitCodeError:
-			return err
-		default:
-			return cli.ExitCodeError{Message: err.Error(), ExitCode: 126}
-		}
+		return err
 	}
 
-	// In detached mode, we print the container ID to the standard output and we
-	// are done. The container should be running as long as it is supposed to
-	// (e.g., if the command exits after completion, the container might be
-	// exited but if the command is a daemon, the container should still be
-	// alive).
-	if detach {
-		fmt.Fprintln(os.Stdout, result.ContainerID)
-		return nil
-	}
-
-	os.Exit(result.ExitStatus)
+	fmt.Fprintln(os.Stdout, container.ID)
 	return nil
 }
