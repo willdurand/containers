@@ -11,6 +11,7 @@ import (
 	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 	"github.com/willdurand/containers/internal/yaman/container"
+	"github.com/willdurand/containers/internal/yaman/registry"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
@@ -29,6 +30,7 @@ func addCreateFlagsToCommand(cmd *cobra.Command) {
 	cmd.Flags().String("hostname", "", "set the container hostname")
 	cmd.Flags().BoolP("interactive", "i", false, "keep stdin open")
 	cmd.Flags().String("name", "", "assign a name to the container")
+	cmd.Flags().String("pull", string(registry.PullMissing), `pull image before running ("always"|"missing"|"never")`)
 	cmd.Flags().Bool("rm", false, "automatically remove the container when it exits")
 	cmd.Flags().String("runtime", "", "runtime to use for this container")
 	cmd.Flags().BoolP("tty", "t", false, "allocate a pseudo-tty")
@@ -36,6 +38,17 @@ func addCreateFlagsToCommand(cmd *cobra.Command) {
 
 func create(cmd *cobra.Command, args []string) error {
 	rootDir, _ := cmd.Flags().GetString("root")
+
+	// registry/pull options
+	pull, _ := cmd.Flags().GetString("pull")
+	pullPolicy, err := registry.ParsePullPolicy(pull)
+	if err != nil {
+		return err
+	}
+	pullOpts := registry.PullOpts{
+		Policy: pullPolicy,
+		Output: os.Stderr,
+	}
 
 	// container options
 	name, _ := cmd.Flags().GetString("name")
@@ -63,7 +76,7 @@ func create(cmd *cobra.Command, args []string) error {
 		shimOpts.Runtime = runtime
 	}
 
-	_, container, err := yaman.Create(rootDir, args[0], containerOpts, shimOpts)
+	_, container, err := yaman.Create(rootDir, args[0], pullOpts, containerOpts, shimOpts)
 	if err != nil {
 		return err
 	}

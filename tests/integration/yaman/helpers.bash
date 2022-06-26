@@ -9,7 +9,7 @@ DOCKER_HELLO_WORLD=docker.io/willdurand/hello-world
 QUAY_ALPINE=quay.io/aptible/alpine
 
 function run_yaman() {
-  run timeout --foreground "$TIMEOUT" yaman "$@"
+  run --separate-stderr timeout --foreground "$TIMEOUT" yaman "$@"
 }
 
 function random_string() {

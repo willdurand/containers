@@ -130,7 +130,10 @@ func (c registryClient) DownloadAndUnpackLayer(img *image.Image, layer imagespec
 
 func PullFromRegistry(img *image.Image, pullOpts PullOpts, opts registryOpts) error {
 	logger := logrus.WithField("image", img.FQIN())
-	logger.WithField("opts", opts).Debug("pulling from registry")
+
+	if pullOpts.Output != nil {
+		fmt.Fprintf(pullOpts.Output, "Pulling %s\n", img.FQIN())
+	}
 
 	if err := os.MkdirAll(img.BlobsDir(), 0o755); err != nil {
 		return err
@@ -190,8 +193,8 @@ func PullFromRegistry(img *image.Image, pullOpts PullOpts, opts registryOpts) er
 		}
 	}
 
-	if pullOpts.Stdout != nil {
-		fmt.Fprintf(pullOpts.Stdout, "%s\n", manifest.Config.Digest.String())
+	if pullOpts.Output != nil {
+		fmt.Fprintf(pullOpts.Output, "Digest: %s\n", manifest.Config.Digest.String())
 	}
 
 	return nil
