@@ -2,6 +2,7 @@ package yaman
 
 import (
 	"github.com/willdurand/containers/internal/yaman/container"
+	"github.com/willdurand/containers/internal/yaman/registry"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
@@ -13,10 +14,10 @@ type RunResult struct {
 
 // Run runs a command in a new container. We return the ID of the container on
 // success and an error otherwise.
-func Run(rootDir, imageName string, containerOpts container.ContainerOpts, shimOpts shim.ShimOpts) (RunResult, error) {
+func Run(rootDir, imageName string, pullOpts registry.PullOpts, containerOpts container.ContainerOpts, shimOpts shim.ShimOpts) (RunResult, error) {
 	var result RunResult
 
-	_, container, err := Create(rootDir, imageName, containerOpts, shimOpts)
+	_, container, err := Create(rootDir, imageName, pullOpts, containerOpts, shimOpts)
 	if err != nil {
 		return result, err
 	}

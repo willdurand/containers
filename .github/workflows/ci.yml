@@ -16,6 +16,11 @@ jobs:
       with:
         submodules: true
 
+    - name: Setup BATS testing framework
+      uses: mig4/setup-bats@v1.2.0
+      with:
+          bats-version: 1.7.0
+
     - name: Set up go
       uses: actions/setup-go@v3
       with:

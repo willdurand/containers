@@ -13,6 +13,5 @@ load helpers
 }
 
 @test "yaman container run sets its exit code to 127 when command is not found" {
-  run_yaman container run --rm "$DOCKER_ALPINE" -- /bin/invalid-program
-  assert_failure 127
+  run -127 yaman container run --rm "$DOCKER_ALPINE" -- /bin/invalid-program
 }

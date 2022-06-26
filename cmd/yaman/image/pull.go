@@ -29,7 +29,7 @@ func pull(cmd *cobra.Command, args []string) error {
 
 	opts := registry.PullOpts{
 		Policy: registry.PullAlways,
-		Stdout: os.Stdout,
+		Output: os.Stdout,
 	}
 	if err := registry.Pull(img, opts); err != nil {
 		return err

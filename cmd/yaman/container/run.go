@@ -11,6 +11,7 @@ import (
 	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
 	"github.com/willdurand/containers/internal/yaman/container"
+	"github.com/willdurand/containers/internal/yaman/registry"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
@@ -28,7 +29,17 @@ func init() {
 
 func run(cmd *cobra.Command, args []string) error {
 	rootDir, _ := cmd.Flags().GetString("root")
-	detach, _ := cmd.Flags().GetBool("detach")
+
+	// registry/pull options
+	pull, _ := cmd.Flags().GetString("pull")
+	pullPolicy, err := registry.ParsePullPolicy(pull)
+	if err != nil {
+		return err
+	}
+	pullOpts := registry.PullOpts{
+		Policy: pullPolicy,
+		Output: os.Stderr,
+	}
 
 	// container options
 	name, _ := cmd.Flags().GetString("name")
@@ -40,6 +51,7 @@ func run(cmd *cobra.Command, args []string) error {
 	hostname, _ := cmd.Flags().GetString("hostname")
 	interactive, _ := cmd.Flags().GetBool("interactive")
 	tty, _ := cmd.Flags().GetBool("tty")
+	detach, _ := cmd.Flags().GetBool("detach")
 	containerOpts := container.ContainerOpts{
 		Name:        name,
 		Command:     args[1:],
@@ -56,7 +68,7 @@ func run(cmd *cobra.Command, args []string) error {
 		shimOpts.Runtime = runtime
 	}
 
-	result, err := yaman.Run(rootDir, args[0], containerOpts, shimOpts)
+	result, err := yaman.Run(rootDir, args[0], pullOpts, containerOpts, shimOpts)
 	if err != nil {
 		// If we do not have an `ExitCodeError` already, set the exit code to
 		// `126` to indicate a problem coming from Yaman.

@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/willdurand/containers/internal/yaman/image"
 )
@@ -15,7 +16,7 @@ type PullPolicy string
 // PullOpts contains options for the pull operation.
 type PullOpts struct {
 	Policy PullPolicy
-	Stdout io.Writer
+	Output io.Writer
 }
 
 const (
@@ -26,6 +27,8 @@ const (
 	// PullNever means that we never pull the image.
 	PullNever PullPolicy = "never"
 )
+
+var ErrInvalidPullPolicy = errors.New("invalid pull policy")
 
 // Pull downloads and unpacks an image from a registry.
 func Pull(img *image.Image, opts PullOpts) error {
@@ -69,4 +72,17 @@ func Pull(img *image.Image, opts PullOpts) error {
 	}
 
 	return PullFromRegistry(img, opts, rOpts)
+}
+
+func ParsePullPolicy(value string) (PullPolicy, error) {
+	switch strings.ToLower(value) {
+	case "always":
+		return PullAlways, nil
+	case "missing":
+		return PullMissing, nil
+	case "never":
+		return PullNever, nil
+	}
+
+	return "", ErrInvalidPullPolicy
 }

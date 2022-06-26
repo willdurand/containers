@@ -7,15 +7,12 @@ import (
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
-func Create(rootDir, imageName string, containerOpts container.ContainerOpts, shimOpts shim.ShimOpts) (*shim.Shim, *container.Container, error) {
+func Create(rootDir, imageName string, pullOpts registry.PullOpts, containerOpts container.ContainerOpts, shimOpts shim.ShimOpts) (*shim.Shim, *container.Container, error) {
 	img, err := image.New(rootDir, imageName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pullOpts := registry.PullOpts{
-		Policy: registry.PullMissing,
-	}
 	if err := registry.Pull(img, pullOpts); err != nil {
 		return nil, nil, err
 	}
