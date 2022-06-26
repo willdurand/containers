@@ -21,6 +21,18 @@ Manage containers.
 
 Alias: `yaman c`
 
+#### `yaman container create`
+
+Create a new container and then start it:
+
+```console
+$ yaman c create -it docker.io/library/alpine
+8c4c39aa7819463e9be362dcf0b053df
+
+$ yaman c start --attach 8c4c39aa7819463e9be362dcf0b053df
+/ # 
+```
+
 #### `yaman container run`
 
 **Note:** Yaman requires the use of fully qualified image names.
@@ -115,6 +127,25 @@ $ yaman c run -it quay.io/aptible/alpine
 $ yaman c list -a
 CONTAINER ID                       IMAGE                           COMMAND   STATUS                    NAME
 b2985e49d1f34d539599bba4fc0e789d   quay.io/aptible/alpine:latest   /bin/sh   Exited (0) 1 second ago   sad_mclean
+```
+
+
+
+#### `yaman container start`
+
+Start a created container:
+
+```console
+$ yaman c ls -a
+CONTAINER ID                       IMAGE                             COMMAND     CREATED              STATUS                      NAME
+a5cbe56e57bf4370b93685543e6ecaf1   docker.io/library/alpine:latest   /bin/sh     5 seconds ago        created                     amazing_lamarr
+
+$ yaman c start -a a5cbe56e57bf4370b93685543e6ecaf1
+/ # exit
+
+$ yaman c ls -a
+CONTAINER ID                       IMAGE                             COMMAND     CREATED              STATUS                          NAME
+a5cbe56e57bf4370b93685543e6ecaf1   docker.io/library/alpine:latest   /bin/sh     About a minute ago   Exited (0) 4 seconds ago        amazing_lamarr
 ```
 
 #### `yaman container inspect`

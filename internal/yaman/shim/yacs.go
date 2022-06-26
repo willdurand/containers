@@ -204,33 +204,7 @@ func (s *Yacs) Terminate() error {
 		return err
 	}
 
-	if err := s.Container.CleanUp(); err != nil {
-		return err
-	}
-
-	// Terminate the shim process by sending a DELETE request.
-	req, err := http.NewRequest(http.MethodDelete, "http://shim/", nil)
-	if err != nil {
-		return err
-	}
-
-	c, err := s.getHttpClient()
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Let's persist a copy of the shim state (before it got terminated) on disk.
-	s.State = state
-	s.SocketPath = ""
-	s.Container.ExitedAt = time.Now()
-
-	return s.save()
+	return s.cleanUp(state)
 }
 
 // Destroy destroys a stopped container, otherwise an error will be returned.
@@ -240,8 +214,14 @@ func (s *Yacs) Destroy() error {
 		return err
 	}
 
-	if state.State.Status != constants.StateStopped {
+	if state.State.Status == constants.StateRunning {
 		return fmt.Errorf("container '%s' is %s", s.ID(), state.State.Status)
+	}
+
+	if state.State.Status != constants.StateStopped {
+		if err := s.cleanUp(state); err != nil {
+			return err
+		}
 	}
 
 	return s.Container.Destroy()
@@ -292,7 +272,16 @@ func (s *Yacs) CopyLogs(stdout io.Writer, stderr io.Writer, withTimestamps bool)
 // StartContainer tells the shim to start a container that was previously
 // created.
 func (s *Yacs) StartContainer() error {
-	err := s.sendCommand(url.Values{
+	state, err := s.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state.State.Status != constants.StateCreated {
+		return fmt.Errorf("container '%s' is %s", s.ID(), state.State.Status)
+	}
+
+	err = s.sendCommand(url.Values{
 		"cmd": []string{"start"},
 	})
 	if err != nil {
@@ -355,7 +344,7 @@ func (s *Yacs) OpenStreams() (*os.File, *os.File, *os.File, error) {
 }
 
 // Attach attaches the provided Input/Output streams to the container.
-func (s *Yacs) Attach(sin, sout, serr *os.File) error {
+func (s *Yacs) Attach(attachStdin, attachStdout, attachStderr bool) error {
 	stdin, stdout, stderr, err := s.OpenStreams()
 	if err != nil {
 		return err
@@ -366,9 +355,9 @@ func (s *Yacs) Attach(sin, sout, serr *os.File) error {
 
 	// In interactive mode, we keep `stdin` open, otherwise we close it
 	// immediately and we only care about `stdout` and `stderr`.
-	if s.Container.Opts.Interactive {
+	if attachStdin {
 		go func() {
-			io.Copy(stdin, sin)
+			io.Copy(stdin, os.Stdin)
 
 			if !s.Container.Opts.Tty {
 				// HACK: this isn't how we should handle EOF on stdin but there is an
@@ -390,16 +379,16 @@ func (s *Yacs) Attach(sin, sout, serr *os.File) error {
 
 		// We force the current terminal to switch to "raw mode" because we don't
 		// want it to mess with the PTY set up by the container itself.
-		oldState, err := term.MakeRaw(int(sin.Fd()))
+		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 		if err != nil {
 			return err
 		}
-		defer term.Restore(int(sin.Fd()), oldState)
+		defer term.Restore(int(os.Stdin.Fd()), oldState)
 
-		go io.Copy(stdin, sin)
+		go io.Copy(stdin, os.Stdin)
 		// Block on the stream coming from the container so that when it exits, we
 		// can also exit this command.
-		io.Copy(sout, stdout)
+		io.Copy(os.Stdout, stdout)
 	} else {
 		// TODO: proxy all received signals to the container process and maybe add
 		// an option like Docker's `--sig-proxy` one.
@@ -408,16 +397,50 @@ func (s *Yacs) Attach(sin, sout, serr *os.File) error {
 		// We copy the data from the container to the appropriate streams as long
 		// as we can. When the container process exits, the shimm should close the
 		// streams on its end, which should allow `copyStd()` to complete.
-		wg.Add(1)
-		go copyStd(stdout, sout, &wg)
+		if attachStdout {
+			wg.Add(1)
+			go copyStd(stdout, os.Stdout, &wg)
+		}
 
-		wg.Add(1)
-		go copyStd(stderr, serr, &wg)
+		if attachStderr {
+			wg.Add(1)
+			go copyStd(stderr, os.Stderr, &wg)
+		}
 
 		wg.Wait()
 	}
 
 	return nil
+}
+
+func (s *Yacs) cleanUp(state *yacs.YacsState) error {
+	if err := s.Container.CleanUp(); err != nil {
+		return err
+	}
+
+	// Terminate the shim process by sending a DELETE request.
+	req, err := http.NewRequest(http.MethodDelete, "http://shim/", nil)
+	if err != nil {
+		return err
+	}
+
+	c, err := s.getHttpClient()
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Let's persist a copy of the shim state (before it got terminated) on disk.
+	s.State = state
+	s.SocketPath = ""
+	s.Container.ExitedAt = time.Now()
+
+	return s.save()
 }
 
 func (s *Yacs) sendCommand(values url.Values) error {
