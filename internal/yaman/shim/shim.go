@@ -97,6 +97,10 @@ func Load(rootDir, id string) (*Shim, error) {
 // Create starts a shim process, which will also create a container by invoking
 // an OCI runtime.
 func (s *Shim) Create(rootDir string) error {
+	if err := s.Container.Mount(); err != nil {
+		return err
+	}
+
 	// Look up the path to the `yacs` shim binary.
 	yacs, err := exec.LookPath("yacs")
 	if err != nil {
@@ -460,6 +464,59 @@ func (s *Shim) Attach(attachStdin, attachStdout, attachStderr bool) error {
 // process ID should be written when it is started.
 func (s *Shim) Slirp4netnsPidFilePath() string {
 	return filepath.Join(s.BaseDir, slirp4netnsPidFileName)
+}
+
+// Recreate stops a container if it is running and then re-create a new
+// container. If the container is already stopped, we only re-create the
+// container.
+func (s *Shim) Recreate(rootDir string) error {
+	state, err := s.GetState()
+	if err != nil {
+		return err
+	}
+
+	// When the container has only been created, we can early return because
+	// there is no need to recreate it.
+	if state.State.Status == constants.StateCreated {
+		return nil
+	}
+
+	// Backup the remove option because we might have to override it if the
+	// container is not stopped and we have to stop it.
+	remove := s.Container.Opts.Remove
+
+	if state.State.Status != constants.StateStopped {
+		// We need to set this option to `false` unconditionally because we
+		// don't want to auto-remove the container when we stop it since we want
+		// to restart it.
+		s.Container.Opts.Remove = false
+		if err := s.save(); err != nil {
+			return err
+		}
+
+		if err := s.StopContainer(); err != nil {
+			return err
+		}
+
+		if err := s.Terminate(); err != nil {
+			return err
+		}
+	}
+
+	// Reset shim state
+	s.State = nil
+	// Restore remove option
+	s.Container.Opts.Remove = remove
+	// Reset container state
+	s.Container.ExitedAt = time.Time{}
+	if err := s.save(); err != nil {
+		return err
+	}
+
+	// At this point the container has been stopped: the shim process is gone
+	// and the rootfs has been unmounted. We should create a new container and
+	// its shim process.
+	return s.Create(rootDir)
 }
 
 func (s *Shim) cleanUp(state *yacs.YacsState) error {

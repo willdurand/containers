@@ -17,3 +17,12 @@ function random_string() {
 
   head /dev/urandom | tr -dc A-Z0-9 | head -c"$length"
 }
+
+function inspect() {
+  local cid="$1"
+  
+  run yaman container inspect "$@"
+  assert_success
+
+  echo "$output"
+}
