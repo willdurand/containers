@@ -3,10 +3,7 @@
 load helpers
 
 @test "yaman container restart a created container" {
-  local cid=""
-  run_yaman container create "$DOCKER_ALPINE" -- echo "hello, world"
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container create "$DOCKER_ALPINE" -- echo "hello, world")
 
   run_yaman container restart "$cid"
   assert_success
@@ -20,15 +17,10 @@ load helpers
 }
 
 @test "yaman container restart a running container" {
-  local cid=""
-  local pid1=""
-  local pid2=""
-
-  run_yaman container run -d "$DOCKER_ALPINE" -- sleep 100
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container run -d "$DOCKER_ALPINE" -- sleep 100)
   pid1=$(inspect "$cid" | jq '.Shim.State.pid')
 
+  sleep 1
   run_yaman container restart "$cid"
   assert_success
   pid2=$(inspect "$cid" | jq '.Shim.State.pid')
@@ -46,15 +38,10 @@ load helpers
 }
 
 @test "yaman container restart a running container configured with --rm" {
-  local cid=""
-  local pid1=""
-  local pid2=""
-
-  run_yaman container run -d --rm "$DOCKER_ALPINE" -- sleep 100
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container run -d --rm "$DOCKER_ALPINE" -- sleep 100)
   pid1=$(inspect "$cid" | jq '.Shim.State.pid')
 
+  sleep 1
   run_yaman container restart "$cid"
   assert_success
   pid2=$(inspect "$cid" | jq '.Shim.State.pid')

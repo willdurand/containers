@@ -3,10 +3,7 @@
 load helpers
 
 @test "yaman container list" {
-  local cid=""
-  run_yaman container run -d "$DOCKER_ALPINE" -- sleep 10
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container run -d "$DOCKER_ALPINE" -- sleep 10)
 
   run_yaman container list
   assert_success

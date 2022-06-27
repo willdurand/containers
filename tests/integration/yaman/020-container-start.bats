@@ -3,10 +3,7 @@
 load helpers
 
 @test "yaman container start" {
-  local cid=""
-  run_yaman container create "$DOCKER_ALPINE" -- echo "hello, world"
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container create "$DOCKER_ALPINE" -- echo "hello, world")
 
   run_yaman container start "$cid"
   assert_success
@@ -21,10 +18,7 @@ load helpers
 }
 
 @test "yaman container start --attach" {
-  local cid=""
-  run_yaman container create --rm "$DOCKER_ALPINE" -- echo "hello, world"
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container create --rm "$DOCKER_ALPINE" -- echo "hello, world")
 
   run_yaman container start --attach "$cid"
   assert_success
@@ -32,10 +26,7 @@ load helpers
 }
 
 @test "yaman container start --interactive" {
-  local cid=""
-  run_yaman container create --rm --interactive "$DOCKER_ALPINE" -- cat
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container create --rm --interactive "$DOCKER_ALPINE" -- cat)
 
   run bash -c "echo 'hello, world' | yaman container start --interactive $cid"
   assert_success
@@ -43,10 +34,7 @@ load helpers
 }
 
 @test "yaman container start --interactive --attach" {
-  local cid=""
-  run_yaman container create --rm --interactive "$DOCKER_ALPINE" -- cat
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container create --rm --interactive "$DOCKER_ALPINE" -- cat)
 
   run bash -c "echo 'hello, world' | yaman container start --attach --interactive $cid"
   assert_success

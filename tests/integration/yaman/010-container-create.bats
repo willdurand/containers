@@ -3,10 +3,7 @@
 load helpers
 
 @test "yaman container create" {
-  local cid=""
-  run_yaman container create --rm "$DOCKER_ALPINE" -- echo "hello, world"
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container create --rm "$DOCKER_ALPINE" -- echo "hello, world")
 
   run_yaman container list --all
   assert_success
