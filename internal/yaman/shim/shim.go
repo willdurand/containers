@@ -45,11 +45,11 @@ type ShimOpts struct {
 
 // Shim represents an instance of the `yacs` shim.
 type Shim struct {
+	BaseDir    string
 	Container  *container.Container
 	Opts       ShimOpts
 	SocketPath string
 	State      *yacs.YacsState
-	baseDir    string
 	httpClient *http.Client
 }
 
@@ -60,9 +60,9 @@ var defaultShimOpts = ShimOpts{
 // New creates a new shim instance for a given container.
 func New(container *container.Container, opts ShimOpts) *Shim {
 	shim := &Shim{
+		BaseDir:   container.BaseDir,
 		Container: container,
 		Opts:      defaultShimOpts,
-		baseDir:   container.BaseDir,
 	}
 
 	if opts.Runtime != "" {
@@ -70,13 +70,6 @@ func New(container *container.Container, opts ShimOpts) *Shim {
 	}
 
 	return shim
-}
-
-// ID returns the ID of the shim, which is also the container's ID given that a
-// shim is bound to a container (or the other way around) and container IDs are
-// unique.
-func (s *Shim) ID() string {
-	return s.Container.ID
 }
 
 // Load attempts to load a shim configuration from disk. It returns a new shim
@@ -101,9 +94,9 @@ func Load(rootDir, id string) (*Shim, error) {
 	return shim, nil
 }
 
-// Start starts a shim process, which will create a container by invoking an
-// OCI runtime.
-func (s *Shim) Start(rootDir string) error {
+// Create starts a shim process, which will also create a container by invoking
+// an OCI runtime.
+func (s *Shim) Create(rootDir string) error {
 	// Look up the path to the `yacs` shim binary.
 	yacs, err := exec.LookPath("yacs")
 	if err != nil {
@@ -194,9 +187,14 @@ func (s *Shim) GetState() (*yacs.YacsState, error) {
 	}
 	defer resp.Body.Close()
 
-	state := new(yacs.YacsState)
-	if err := json.NewDecoder(resp.Body).Decode(state); err != nil {
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
+	}
+
+	state := new(yacs.YacsState)
+	if err := json.Unmarshal(data, state); err != nil {
+		return nil, fmt.Errorf("failed to read state: %s", data)
 	}
 
 	return state, nil
@@ -205,50 +203,58 @@ func (s *Shim) GetState() (*yacs.YacsState, error) {
 // Terminate stops the shim if the container is stopped, otherwise an error is
 // returned.
 //
-// Stopping the shim is performed in multiple steps: (1) delete the container,
-// (2) clean-up the container (e.g., unmount rootfs), (3) terminate the shim.
+// Stopping the shim is performed in two steps: (1) delete the container, and
+// (2) run some clean-up tasks like unmounting the root filesystem, stopping
+// slirp4netns and terminating the shim process.
+//
 // Once this is done, we persist the final shim state on disk so that other
 // Yaman commands can read and display information until the container is
-// actually deleted.
+// actually deleted. This is one of the main differences with the `Destroy()`
+// method: the shim state is still available.
 func (s *Shim) Terminate() error {
+	// We need to read the state first because we won't be able to read it once
+	// the container has been deleted (by the OCI runtime).
 	state, err := s.GetState()
 	if err != nil {
 		return err
 	}
 
-	if state.State.Status != constants.StateStopped {
-		return fmt.Errorf("container '%s' is %s", s.Container.ID, state.State.Status)
-	}
-
-	if err := s.sendCommand(url.Values{"cmd": []string{"delete"}}); err != nil {
+	if err := s.DeleteContainer(); err != nil {
 		return err
 	}
 
 	return s.cleanUp(state)
 }
 
-// Destroy destroys a stopped container, otherwise an error will be returned.
-func (s *Shim) Destroy() error {
+// Delete deletes a container that is not running, otherwise an error will be
+// returned. If the container is not running and not stopped, the shim is
+// terminated first.
+//
+// All the container files should be deleted as a result of a call to this
+// method and the container will not exist anymore.
+func (s *Shim) Delete() error {
 	state, err := s.GetState()
 	if err != nil {
 		return err
 	}
 
-	if state.State.Status == constants.StateRunning {
-		return fmt.Errorf("container '%s' is %s", s.ID(), state.State.Status)
-	}
-
-	if state.State.Status != constants.StateStopped {
+	switch state.State.Status {
+	case constants.StateRunning:
+		return fmt.Errorf("container '%s' is %s", s.Container.ID, state.State.Status)
+	case constants.StateStopped:
+		break
+	default:
 		if err := s.cleanUp(state); err != nil {
 			return err
 		}
 	}
 
-	return s.Container.Destroy()
+	return s.Container.Delete()
 }
 
-// CopyLogs copies all the container logs returned by the shim to the provided
-// writers.
+// CopyLogs copies all the container logs stored by the shim to the provided
+// writers. Note that this method does NOT use the shim's HTTP API. It reads the
+// container log file directly.
 func (s *Shim) CopyLogs(stdout io.Writer, stderr io.Writer, withTimestamps bool) error {
 	file, err := os.Open(s.Container.LogFilePath)
 	if err != nil {
@@ -298,7 +304,7 @@ func (s *Shim) StartContainer() error {
 	}
 
 	if state.State.Status != constants.StateCreated {
-		return fmt.Errorf("container '%s' is %s", s.ID(), state.State.Status)
+		return fmt.Errorf("container '%s' is %s", s.Container.ID, state.State.Status)
 	}
 
 	err = s.sendCommand(url.Values{
@@ -324,6 +330,9 @@ func (s *Shim) StopContainer() error {
 		return err
 	}
 
+	// Wait a second before reading the state again.
+	time.Sleep(1 * time.Second)
+
 	state, err := s.GetState()
 	if err != nil {
 		return err
@@ -341,6 +350,20 @@ func (s *Shim) StopContainer() error {
 	}
 
 	return nil
+}
+
+// DeleteContainer tells the shim to delete the container.
+func (s *Shim) DeleteContainer() error {
+	state, err := s.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state.State.Status != constants.StateStopped {
+		return fmt.Errorf("container '%s' is %s", s.Container.ID, state.State.Status)
+	}
+
+	return s.sendCommand(url.Values{"cmd": []string{"delete"}})
 }
 
 // OpenStreams opens and returns the stdio streams of the container.
@@ -436,7 +459,7 @@ func (s *Shim) Attach(attachStdin, attachStdout, attachStderr bool) error {
 // Slirp4netnsPidFilePath returns the path to the file where the slirp4netns
 // process ID should be written when it is started.
 func (s *Shim) Slirp4netnsPidFilePath() string {
-	return filepath.Join(s.baseDir, slirp4netnsPidFileName)
+	return filepath.Join(s.BaseDir, slirp4netnsPidFileName)
 }
 
 func (s *Shim) cleanUp(state *yacs.YacsState) error {
@@ -453,6 +476,10 @@ func (s *Shim) cleanUp(state *yacs.YacsState) error {
 					logrus.WithError(err).Debug("failed to terminate slirp4netns")
 				}
 			}
+		}
+
+		if err := os.Remove(s.Slirp4netnsPidFilePath()); err != nil {
+			logrus.WithError(err).Warn("failed to delete slirp4netns pid file")
 		}
 	}
 
@@ -534,9 +561,9 @@ func (s *Shim) save() error {
 }
 
 func (s *Shim) stateFilePath() string {
-	return filepath.Join(s.baseDir, stateFileName)
+	return filepath.Join(s.BaseDir, stateFileName)
 }
 
 func (s *Shim) stdioDir() string {
-	return s.baseDir
+	return s.BaseDir
 }

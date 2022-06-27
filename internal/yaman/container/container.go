@@ -202,13 +202,13 @@ func (c *Container) IsExited() bool {
 	return !c.ExitedAt.IsZero()
 }
 
-// Destroy removes the container base directory and all its files.
-func (c *Container) Destroy() error {
+// Delete removes the container base directory and all its files.
+func (c *Container) Delete() error {
 	if err := os.RemoveAll(c.BaseDir); err != nil {
 		return err
 	}
 
-	logrus.WithField("id", c.ID).Debug("container destroyed")
+	logrus.WithField("id", c.ID).Debug("container deleted")
 	return nil
 }
 
