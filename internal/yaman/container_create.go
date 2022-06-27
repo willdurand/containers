@@ -23,9 +23,6 @@ func Create(rootDir, imageName string, pullOpts registry.PullOpts, containerOpts
 			container.Delete()
 		}
 	}()
-	if err := container.Mount(); err != nil {
-		return nil, nil, err
-	}
 
 	shim := shim.New(container, shimOpts)
 	if err := shim.Create(rootDir); err != nil {
