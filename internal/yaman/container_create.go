@@ -20,15 +20,15 @@ func Create(rootDir, imageName string, pullOpts registry.PullOpts, containerOpts
 	container := container.New(rootDir, img, containerOpts)
 	defer func() {
 		if !container.IsStarted() {
-			container.Destroy()
+			container.Delete()
 		}
 	}()
-	if err := container.MakeBundle(); err != nil {
+	if err := container.Mount(); err != nil {
 		return nil, nil, err
 	}
 
 	shim := shim.New(container, shimOpts)
-	if err := shim.Start(rootDir); err != nil {
+	if err := shim.Create(rootDir); err != nil {
 		return nil, nil, err
 	}
 

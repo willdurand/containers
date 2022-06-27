@@ -1,13 +1,11 @@
 package container
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -43,8 +41,7 @@ type Container struct {
 }
 
 const (
-	logFileName            = "container.log"
-	slirp4netnsPidFileName = "slirp4netns.pid"
+	logFileName = "container.log"
 )
 
 func New(rootDir string, img *image.Image, opts ContainerOpts) *Container {
@@ -61,19 +58,30 @@ func New(rootDir string, img *image.Image, opts ContainerOpts) *Container {
 	}
 }
 
-func GetBaseDir(rootDir string) string {
-	return filepath.Join(rootDir, "containers")
-}
-
-func GetSlirp4netnsPidFilePath(bundleDir string) string {
-	return filepath.Join(bundleDir, slirp4netnsPidFileName)
-}
-
-func (c *Container) RootFS() string {
+// Rootfs returns the absolute path to the root filesystem.
+func (c *Container) Rootfs() string {
 	return filepath.Join(c.BaseDir, "rootfs")
 }
 
-func (c *Container) MakeBundle() error {
+// Command returns the container's command, which is what gets executed in the
+// container when it starts.
+func (c *Container) Command() []string {
+	var args []string
+	if conf, err := c.Image.Config(); err == nil {
+		args = conf.Config.Entrypoint
+		if len(c.Opts.Command) > 0 {
+			args = append(args, c.Opts.Command...)
+		} else {
+			args = append(args, conf.Config.Cmd...)
+		}
+	}
+
+	return args
+}
+
+// Mount creates a bundle configuration for the container and mounts its root
+// filesystem.
+func (c *Container) Mount() error {
 	imageConfig, err := c.Image.Config()
 	if err != nil {
 		return err
@@ -83,7 +91,7 @@ func (c *Container) MakeBundle() error {
 		c.BaseDir,
 		c.datadir(),
 		c.workdir(),
-		c.RootFS(),
+		c.Rootfs(),
 	} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
@@ -104,16 +112,16 @@ func (c *Container) MakeBundle() error {
 
 	logrus.WithFields(logrus.Fields{
 		"data":   mountData,
-		"target": c.RootFS(),
+		"target": c.Rootfs(),
 		"fuse":   c.UseFuse,
 	}).Debug("mount overlay")
 
 	if c.UseFuse {
-		if err := exec.Command(fuse, "-o", mountData, c.RootFS()).Run(); err != nil {
+		if err := exec.Command(fuse, "-o", mountData, c.Rootfs()).Run(); err != nil {
 			return fmt.Errorf("failed to mount overlay (fuse): %w", err)
 		}
 	} else {
-		if err := syscall.Mount("overlay", c.RootFS(), "overlay", 0, mountData); err != nil {
+		if err := syscall.Mount("overlay", c.Rootfs(), "overlay", 0, mountData); err != nil {
 			return fmt.Errorf("failed to mount overlay (native): %w", err)
 		}
 	}
@@ -130,7 +138,7 @@ func (c *Container) MakeBundle() error {
 		hostname = c.ID
 	}
 
-	c.Config = runtime.BaseSpec(c.RootFS())
+	c.Config = runtime.BaseSpec(c.Rootfs())
 	c.Config.Process = &runtimespec.Process{
 		Terminal: c.Opts.Tty,
 		User: runtimespec.User{
@@ -168,39 +176,14 @@ func (c *Container) MakeBundle() error {
 	return nil
 }
 
-func (c *Container) Command() []string {
-	var args []string
-	if conf, err := c.Image.Config(); err == nil {
-		args = conf.Config.Entrypoint
-		if len(c.Opts.Command) > 0 {
-			args = append(args, c.Opts.Command...)
-		} else {
-			args = append(args, conf.Config.Cmd...)
-		}
-	}
-
-	return args
-}
-
-func (c *Container) CleanUp() error {
-	if _, err := os.Stat(c.Slirp4netnsPidFilePath()); err == nil {
-		if data, err := os.ReadFile(c.Slirp4netnsPidFilePath()); err == nil {
-			if slirpPid, err := strconv.Atoi(string(bytes.TrimSpace(data))); err == nil {
-				logrus.WithField("pid", slirpPid).Debug("terminating slirp4netns")
-
-				if err := syscall.Kill(slirpPid, syscall.SIGTERM); err != nil {
-					logrus.WithError(err).Debug("failed to terminate slirp4netns")
-				}
-			}
-		}
-	}
-
+// Unmount unmounts the root filesystem of the container.
+func (c *Container) Unmount() error {
 	if c.UseFuse {
-		if err := exec.Command("fusermount3", "-u", c.RootFS()).Run(); err != nil {
+		if err := exec.Command("fusermount3", "-u", c.Rootfs()).Run(); err != nil {
 			logrus.WithError(err).Debug("failed to unmount rootfs (fuse)")
 		}
 	} else {
-		if err := syscall.Unmount(c.RootFS(), 0); err != nil {
+		if err := syscall.Unmount(c.Rootfs(), 0); err != nil {
 			// This likely happens because the rootfs has been previously unmounted.
 			logrus.WithError(err).Debug("failed to unmount rootfs (native)")
 		}
@@ -209,25 +192,24 @@ func (c *Container) CleanUp() error {
 	return nil
 }
 
-func (c *Container) Destroy() error {
-	if err := os.RemoveAll(c.BaseDir); err != nil {
-		return err
-	}
-
-	logrus.WithField("id", c.ID).Debug("container destroyed")
-	return nil
-}
-
+// IsStarted returns `true` when the container has started, and `false` otherwise.
 func (c *Container) IsStarted() bool {
 	return !c.StartedAt.IsZero()
 }
 
+// IsExited returns `true` when the container has exited, and `false` otherwise.
 func (c *Container) IsExited() bool {
 	return !c.ExitedAt.IsZero()
 }
 
-func (c *Container) Slirp4netnsPidFilePath() string {
-	return GetSlirp4netnsPidFilePath(c.BaseDir)
+// Delete removes the container base directory and all its files.
+func (c *Container) Delete() error {
+	if err := os.RemoveAll(c.BaseDir); err != nil {
+		return err
+	}
+
+	logrus.WithField("id", c.ID).Debug("container deleted")
+	return nil
 }
 
 func (c *Container) lowerdir() string {

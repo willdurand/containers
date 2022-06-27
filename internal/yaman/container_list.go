@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/docker/go-units"
-	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/constants"
 	"github.com/willdurand/containers/internal/yaman/container"
 	"github.com/willdurand/containers/internal/yaman/shim"
@@ -65,7 +64,6 @@ func ListContainers(rootDir string, all bool) (ContainerList, error) {
 
 		state, err := shim.GetState()
 		if err != nil {
-			logrus.WithError(err).Warn("failed to get shim state")
 			return nil, err
 		}
 

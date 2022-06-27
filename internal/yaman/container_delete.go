@@ -9,5 +9,5 @@ func Delete(rootDir, id string) error {
 		return err
 	}
 
-	return shim.Destroy()
+	return shim.Delete()
 }

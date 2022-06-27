@@ -13,7 +13,7 @@ func CleanUp(rootDir, id string) error {
 	}
 
 	if shim.Container.Opts.Remove {
-		return shim.Destroy()
+		return shim.Delete()
 	}
 
 	return nil

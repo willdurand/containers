@@ -47,21 +47,21 @@ func (y *Yacs) createContainer() {
 		y.containerReady <- fmt.Errorf("open stdin: %w", err)
 		return
 	}
-	defer sin.Close()
+	defer closeFifo(sin)
 
 	sout, err := os.OpenFile(filepath.Join(y.stdioDir, "1"), os.O_RDWR, 0)
 	if err != nil {
 		y.containerReady <- fmt.Errorf("open stdout: %w", err)
 		return
 	}
-	defer sout.Close()
+	defer closeFifo(sout)
 
 	serr, err := os.OpenFile(filepath.Join(y.stdioDir, "2"), os.O_RDWR, 0)
 	if err != nil {
 		y.containerReady <- fmt.Errorf("open stderr: %w", err)
 		return
 	}
-	defer serr.Close()
+	defer closeFifo(serr)
 
 	// Prepare the arguments for the OCI runtime.
 	runtimeArgs := append(
@@ -299,4 +299,12 @@ func maybeReturnRuntimeError(y *Yacs, originalError error) error {
 	}
 
 	return originalError
+}
+
+func closeFifo(f *os.File) {
+	f.Close()
+
+	if err := os.Remove(f.Name()); err != nil {
+		logrus.WithError(err).WithField("name", f.Name()).Warn("failed to remove FIFO")
+	}
 }
