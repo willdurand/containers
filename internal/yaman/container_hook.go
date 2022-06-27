@@ -59,7 +59,7 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 
 		// Configure DNS inside the container.
 		if err := ioutil.WriteFile(
-			filepath.Join(shim.Container.RootFS(), "etc", "resolv.conf"),
+			filepath.Join(shim.Container.Rootfs(), "etc", "resolv.conf"),
 			[]byte("nameserver 10.0.2.3\n"),
 			0o644,
 		); err != nil {

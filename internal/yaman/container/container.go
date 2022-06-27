@@ -69,7 +69,7 @@ func GetSlirp4netnsPidFilePath(bundleDir string) string {
 	return filepath.Join(bundleDir, slirp4netnsPidFileName)
 }
 
-func (c *Container) RootFS() string {
+func (c *Container) Rootfs() string {
 	return filepath.Join(c.BaseDir, "rootfs")
 }
 
@@ -83,7 +83,7 @@ func (c *Container) MakeBundle() error {
 		c.BaseDir,
 		c.datadir(),
 		c.workdir(),
-		c.RootFS(),
+		c.Rootfs(),
 	} {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
@@ -104,16 +104,16 @@ func (c *Container) MakeBundle() error {
 
 	logrus.WithFields(logrus.Fields{
 		"data":   mountData,
-		"target": c.RootFS(),
+		"target": c.Rootfs(),
 		"fuse":   c.UseFuse,
 	}).Debug("mount overlay")
 
 	if c.UseFuse {
-		if err := exec.Command(fuse, "-o", mountData, c.RootFS()).Run(); err != nil {
+		if err := exec.Command(fuse, "-o", mountData, c.Rootfs()).Run(); err != nil {
 			return fmt.Errorf("failed to mount overlay (fuse): %w", err)
 		}
 	} else {
-		if err := syscall.Mount("overlay", c.RootFS(), "overlay", 0, mountData); err != nil {
+		if err := syscall.Mount("overlay", c.Rootfs(), "overlay", 0, mountData); err != nil {
 			return fmt.Errorf("failed to mount overlay (native): %w", err)
 		}
 	}
@@ -130,7 +130,7 @@ func (c *Container) MakeBundle() error {
 		hostname = c.ID
 	}
 
-	c.Config = runtime.BaseSpec(c.RootFS())
+	c.Config = runtime.BaseSpec(c.Rootfs())
 	c.Config.Process = &runtimespec.Process{
 		Terminal: c.Opts.Tty,
 		User: runtimespec.User{
@@ -196,11 +196,11 @@ func (c *Container) CleanUp() error {
 	}
 
 	if c.UseFuse {
-		if err := exec.Command("fusermount3", "-u", c.RootFS()).Run(); err != nil {
+		if err := exec.Command("fusermount3", "-u", c.Rootfs()).Run(); err != nil {
 			logrus.WithError(err).Debug("failed to unmount rootfs (fuse)")
 		}
 	} else {
-		if err := syscall.Unmount(c.RootFS(), 0); err != nil {
+		if err := syscall.Unmount(c.Rootfs(), 0); err != nil {
 			// This likely happens because the rootfs has been previously unmounted.
 			logrus.WithError(err).Debug("failed to unmount rootfs (native)")
 		}
