@@ -17,8 +17,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -29,7 +31,10 @@ import (
 	"golang.org/x/term"
 )
 
-const stateFileName = "shim.json"
+const (
+	stateFileName          = "shim.json"
+	slirp4netnsPidFileName = "slirp4netns.pid"
+)
 
 var failedToRetrieveExecutable = regexp.MustCompile("failed to retrieve executable")
 
@@ -44,6 +49,7 @@ type Shim struct {
 	Opts       ShimOpts
 	SocketPath string
 	State      *yacs.YacsState
+	baseDir    string
 	httpClient *http.Client
 }
 
@@ -56,6 +62,7 @@ func New(container *container.Container, opts ShimOpts) *Shim {
 	shim := &Shim{
 		Container: container,
 		Opts:      defaultShimOpts,
+		baseDir:   container.BaseDir,
 	}
 
 	if opts.Runtime != "" {
@@ -120,7 +127,7 @@ func (s *Shim) Start(rootDir string) error {
 		"--bundle", s.Container.BaseDir,
 		"--container-id", s.Container.ID,
 		"--container-log-file", s.Container.LogFilePath,
-		"--stdio-dir", s.Container.BaseDir,
+		"--stdio-dir", s.stdioDir(),
 		"--runtime", s.Opts.Runtime,
 		"--exit-command", self,
 		"--exit-command-arg", "--root",
@@ -338,17 +345,17 @@ func (s *Shim) StopContainer() error {
 
 // OpenStreams opens and returns the stdio streams of the container.
 func (s *Shim) OpenStreams() (*os.File, *os.File, *os.File, error) {
-	stdin, err := os.OpenFile(filepath.Join(s.Container.BaseDir, "0"), os.O_WRONLY, 0)
+	stdin, err := os.OpenFile(filepath.Join(s.stdioDir(), "0"), os.O_WRONLY, 0)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	stdout, err := os.Open(filepath.Join(s.Container.BaseDir, "1"))
+	stdout, err := os.Open(filepath.Join(s.stdioDir(), "1"))
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	stderr, err := os.Open(filepath.Join(s.Container.BaseDir, "2"))
+	stderr, err := os.Open(filepath.Join(s.stdioDir(), "2"))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -426,9 +433,27 @@ func (s *Shim) Attach(attachStdin, attachStdout, attachStderr bool) error {
 	return nil
 }
 
+// Slirp4netnsPidFilePath returns the path to the file where the slirp4netns
+// process ID should be written when it is started.
+func (s *Shim) Slirp4netnsPidFilePath() string {
+	return filepath.Join(s.baseDir, slirp4netnsPidFileName)
+}
+
 func (s *Shim) cleanUp(state *yacs.YacsState) error {
-	if err := s.Container.CleanUp(); err != nil {
+	if err := s.Container.Unmount(); err != nil {
 		return err
+	}
+
+	if _, err := os.Stat(s.Slirp4netnsPidFilePath()); err == nil {
+		if data, err := os.ReadFile(s.Slirp4netnsPidFilePath()); err == nil {
+			if slirpPid, err := strconv.Atoi(string(bytes.TrimSpace(data))); err == nil {
+				logrus.WithField("pid", slirpPid).Debug("terminating slirp4netns")
+
+				if err := syscall.Kill(slirpPid, syscall.SIGTERM); err != nil {
+					logrus.WithError(err).Debug("failed to terminate slirp4netns")
+				}
+			}
+		}
 	}
 
 	// Terminate the shim process by sending a DELETE request.
@@ -509,5 +534,9 @@ func (s *Shim) save() error {
 }
 
 func (s *Shim) stateFilePath() string {
-	return filepath.Join(s.Container.BaseDir, stateFileName)
+	return filepath.Join(s.baseDir, stateFileName)
+}
+
+func (s *Shim) stdioDir() string {
+	return s.baseDir
 }

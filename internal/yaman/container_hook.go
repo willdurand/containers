@@ -10,7 +10,6 @@ import (
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"github.com/willdurand/containers/internal/yaman/container"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
@@ -50,7 +49,7 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 		defer slirp.Process.Release()
 
 		if err := ioutil.WriteFile(
-			container.GetSlirp4netnsPidFilePath(state.Bundle),
+			shim.Slirp4netnsPidFilePath(),
 			[]byte(strconv.FormatInt(int64(slirp.Process.Pid), 10)),
 			0o644,
 		); err != nil {

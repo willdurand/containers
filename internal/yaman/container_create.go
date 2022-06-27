@@ -23,7 +23,7 @@ func Create(rootDir, imageName string, pullOpts registry.PullOpts, containerOpts
 			container.Destroy()
 		}
 	}()
-	if err := container.MakeBundle(); err != nil {
+	if err := container.Mount(); err != nil {
 		return nil, nil, err
 	}
 
