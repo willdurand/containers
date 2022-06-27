@@ -351,6 +351,9 @@ func (s *Shim) StopContainer() error {
 		}); err != nil {
 			return err
 		}
+
+		// Give some more time to the exit command.
+		time.Sleep(1 * time.Second)
 	}
 
 	return nil
@@ -495,10 +498,6 @@ func (s *Shim) Recreate(rootDir string) error {
 		}
 
 		if err := s.StopContainer(); err != nil {
-			return err
-		}
-
-		if err := s.Terminate(); err != nil {
 			return err
 		}
 	}

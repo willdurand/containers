@@ -24,10 +24,7 @@ load helpers
 }
 
 @test "yaman container run -d" {
-  local cid=""
-  run_yaman container run --rm -d "$DOCKER_ALPINE" -- sleep 10
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container run --rm -d "$DOCKER_ALPINE" -- sleep 10)
 
   run_yaman container list
   assert_success
@@ -48,10 +45,7 @@ load helpers
 }
 
 @test "yaman container run --name" {
-  local cid=""
-  run_yaman container run -d --rm --name "some-name" "$DOCKER_ALPINE" -- sleep 10
-  assert_success
-  cid="$output"
+  cid=$(run_yaman_and_get_cid container run -d --rm --name "some-name" "$DOCKER_ALPINE" -- sleep 10)
 
   run_yaman container list
   assert_success
