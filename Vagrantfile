@@ -13,9 +13,9 @@ echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/golang.sh >
 echo '==> configure git'
 git config --global --add safe.directory /vagrant
 
-echo '==> install fuse-overlayfs and slirp4netns'
+echo '==> install fuse-overlayfs, slirp4netns, uidmap'
 apt-get update
-apt-get install -y make fuse-overlayfs slirp4netns
+apt-get install -y make fuse-overlayfs slirp4netns uidmap
 SCRIPT
   end
 end
