@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/internal/cmd"
 	"github.com/willdurand/containers/internal/runtime"
 	"github.com/willdurand/containers/internal/yaman/image"
 )
@@ -117,7 +118,7 @@ func (c *Container) Mount() error {
 	}).Debug("mount overlay")
 
 	if c.UseFuse {
-		if err := exec.Command(fuse, "-o", mountData, c.Rootfs()).Run(); err != nil {
+		if err := cmd.Run(exec.Command(fuse, "-o", mountData, c.Rootfs())); err != nil {
 			return fmt.Errorf("failed to mount overlay (fuse): %w", err)
 		}
 	} else {
@@ -183,7 +184,7 @@ func (c *Container) Mount() error {
 // Unmount unmounts the root filesystem of the container.
 func (c *Container) Unmount() error {
 	if c.UseFuse {
-		if err := exec.Command("fusermount3", "-u", c.Rootfs()).Run(); err != nil {
+		if err := cmd.Run(exec.Command("fusermount3", "-u", c.Rootfs())); err != nil {
 			logrus.WithError(err).Debug("failed to unmount rootfs (fuse)")
 		}
 	} else {
