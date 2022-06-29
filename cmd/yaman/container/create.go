@@ -1,12 +1,14 @@
 package container
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"os"
 	"time"
 
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
@@ -27,6 +29,7 @@ func init() {
 }
 
 func addCreateFlagsToCommand(cmd *cobra.Command) {
+	cmd.Flags().String("entrypoint", "", "overwrite the default entrypoint set by the image")
 	cmd.Flags().String("hostname", "", "set the container hostname")
 	cmd.Flags().BoolP("interactive", "i", false, "keep stdin open")
 	cmd.Flags().String("name", "", "assign a name to the container")
@@ -34,6 +37,40 @@ func addCreateFlagsToCommand(cmd *cobra.Command) {
 	cmd.Flags().Bool("rm", false, "automatically remove the container when it exits")
 	cmd.Flags().String("runtime", "", "runtime to use for this container")
 	cmd.Flags().BoolP("tty", "t", false, "allocate a pseudo-tty")
+}
+
+func makeContainerOptsFromCommand(cmd *cobra.Command, command []string) container.ContainerOpts {
+	var entrypoint []string
+	entrypointStr, _ := cmd.Flags().GetString("entrypoint")
+	if entrypointStr != "" {
+		if err := json.Unmarshal([]byte(entrypointStr), &entrypoint); err != nil {
+			logrus.WithError(err).Debug("failed to parse entrypoint as JSON")
+			entrypoint = []string{entrypointStr}
+		}
+	}
+
+	hostname, _ := cmd.Flags().GetString("hostname")
+	interactive, _ := cmd.Flags().GetBool("interactive")
+
+	name, _ := cmd.Flags().GetString("name")
+	if name == "" {
+		rand.Seed(time.Now().UnixNano())
+		name = namesgenerator.GetRandomName(0)
+	}
+
+	rm, _ := cmd.Flags().GetBool("rm")
+	tty, _ := cmd.Flags().GetBool("tty")
+
+	return container.ContainerOpts{
+		Name:        name,
+		Command:     command,
+		Entrypoint:  entrypoint,
+		Remove:      rm,
+		Hostname:    hostname,
+		Interactive: interactive,
+		Tty:         tty,
+		Detach:      false,
+	}
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -51,24 +88,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 
 	// container options
-	name, _ := cmd.Flags().GetString("name")
-	if name == "" {
-		rand.Seed(time.Now().UnixNano())
-		name = namesgenerator.GetRandomName(0)
-	}
-	rm, _ := cmd.Flags().GetBool("rm")
-	hostname, _ := cmd.Flags().GetString("hostname")
-	interactive, _ := cmd.Flags().GetBool("interactive")
-	tty, _ := cmd.Flags().GetBool("tty")
-	containerOpts := container.ContainerOpts{
-		Name:        name,
-		Command:     args[1:],
-		Remove:      rm,
-		Hostname:    hostname,
-		Interactive: interactive,
-		Tty:         tty,
-		Detach:      true,
-	}
+	containerOpts := makeContainerOptsFromCommand(cmd, args[1:])
 
 	// shim options
 	shimOpts := shim.ShimOpts{}

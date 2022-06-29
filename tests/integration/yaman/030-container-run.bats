@@ -60,3 +60,17 @@ load helpers
   assert_success
   assert_output --partial "This message shows that your installation appears to be working correctly"
 }
+
+@test "yaman container run --entrypoint" {
+  run_yaman container run --rm --entrypoint='["sh", "-c", "echo hello"]' "$DOCKER_ALPINE"
+  assert_success
+  assert_output "hello"
+}
+
+@test "yaman container run --entrypoint with command" {
+  value=$(random_string)
+  run_yaman container run --rm --entrypoint='echo' "$DOCKER_ALPINE" -- "$value"
+  assert_success
+  assert_output "$value"
+}
+
