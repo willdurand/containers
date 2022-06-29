@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	imagespec "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/willdurand/containers/internal/yaman/network"
 )
 
 // Image represents a OCI image.
@@ -118,6 +119,11 @@ func (i *Image) Refresh() error {
 	}
 
 	return nil
+}
+
+// ExposedPorts returns the list of exposed ports defined in the image.
+func (i *Image) ExposedPorts() ([]network.ExposedPort, error) {
+	return network.ParseExposedPorts(i.Config.Config.ExposedPorts)
 }
 
 // loadConfig loads the image config from disk.

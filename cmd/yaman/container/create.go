@@ -33,6 +33,7 @@ func addCreateFlagsToCommand(cmd *cobra.Command) {
 	cmd.Flags().String("hostname", "", "set the container hostname")
 	cmd.Flags().BoolP("interactive", "i", false, "keep stdin open")
 	cmd.Flags().String("name", "", "assign a name to the container")
+	cmd.Flags().BoolP("publish-all", "P", false, "publish all exposed ports to random ports")
 	cmd.Flags().String("pull", string(registry.PullMissing), `pull image before running ("always"|"missing"|"never")`)
 	cmd.Flags().Bool("rm", false, "automatically remove the container when it exits")
 	cmd.Flags().String("runtime", "", "runtime to use for this container")
@@ -58,6 +59,7 @@ func makeContainerOptsFromCommand(cmd *cobra.Command, command []string) containe
 		name = namesgenerator.GetRandomName(0)
 	}
 
+	publishAll, _ := cmd.Flags().GetBool("publish-all")
 	rm, _ := cmd.Flags().GetBool("rm")
 	tty, _ := cmd.Flags().GetBool("tty")
 
@@ -70,6 +72,7 @@ func makeContainerOptsFromCommand(cmd *cobra.Command, command []string) containe
 		Interactive: interactive,
 		Tty:         tty,
 		Detach:      false,
+		PublishAll:  publishAll,
 	}
 }
 

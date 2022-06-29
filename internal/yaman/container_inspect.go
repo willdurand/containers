@@ -8,20 +8,22 @@ import (
 	"github.com/willdurand/containers/internal/yacs"
 	"github.com/willdurand/containers/internal/yaman/container"
 	"github.com/willdurand/containers/internal/yaman/image"
+	"github.com/willdurand/containers/internal/yaman/network"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
 // ContainerInspect is a data transfer structure and represents the result of
 // the `inspect` command.
 type ContainerInspect struct {
-	Id      string
-	Root    string
-	Config  runtimespec.Spec
-	Options container.ContainerOpts
-	Created time.Time
-	Started time.Time
-	Exited  time.Time
-	Image   struct {
+	Id           string
+	Root         string
+	Config       runtimespec.Spec
+	Options      container.ContainerOpts
+	Created      time.Time
+	Started      time.Time
+	Exited       time.Time
+	ExposedPorts []network.ExposedPort
+	Image        struct {
 		image.Image
 		Config   imagespec.Image
 		Manifest imagespec.Manifest
@@ -49,6 +51,7 @@ func Inspect(rootDir, id string) (ContainerInspect, error) {
 	inspect.Created = shim.Container.CreatedAt
 	inspect.Started = shim.Container.StartedAt
 	inspect.Exited = shim.Container.ExitedAt
+	inspect.ExposedPorts = shim.Container.ExposedPorts
 	inspect.Image.Image = *shim.Container.Image
 	inspect.Image.Config = *shim.Container.Image.Config
 	inspect.Image.Manifest = *shim.Container.Image.Manifest

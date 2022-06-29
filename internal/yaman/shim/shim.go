@@ -32,8 +32,9 @@ import (
 )
 
 const (
-	stateFileName          = "shim.json"
-	slirp4netnsPidFileName = "slirp4netns.pid"
+	stateFileName            = "shim.json"
+	slirp4netnsPidFileName   = "slirp4netns.pid"
+	slirp4netnsApiSocketName = "slirp4netns.sock"
 )
 
 var failedToRetrieveExecutable = regexp.MustCompile("failed to retrieve executable")
@@ -343,7 +344,9 @@ func (s *Shim) StopContainer() error {
 
 	state, err := s.GetState()
 	if err != nil {
-		return err
+		// After a second, it is possible that the container has exited properly
+		// after SIGTEM and we ran 'container cleanup'.
+		return nil
 	}
 
 	if state.State.Status != constants.StateStopped {
@@ -473,6 +476,12 @@ func (s *Shim) Slirp4netnsPidFilePath() string {
 	return filepath.Join(s.BaseDir, slirp4netnsPidFileName)
 }
 
+// Slirp4netnsApiSocketPath returns the path to the API socket used to
+// communicate with the slirp4netns process.
+func (s *Shim) Slirp4netnsApiSocketPath() string {
+	return filepath.Join(s.BaseDir, slirp4netnsApiSocketName)
+}
+
 // Recreate stops a container if it is running and then re-create a new
 // container. If the container is already stopped, we only re-create the
 // container.
@@ -541,6 +550,10 @@ func (s *Shim) cleanUp(state *yacs.YacsState) error {
 		if err := os.Remove(s.Slirp4netnsPidFilePath()); err != nil {
 			logrus.WithError(err).Warn("failed to delete slirp4netns pid file")
 		}
+	}
+
+	if err := os.Remove(s.Slirp4netnsApiSocketPath()); err != nil {
+		logrus.WithError(err).Warn("failed to delete slirp4netns socket file")
 	}
 
 	// Terminate the shim process by sending a DELETE request.

@@ -11,17 +11,19 @@ import (
 	"github.com/docker/go-units"
 	"github.com/willdurand/containers/internal/constants"
 	"github.com/willdurand/containers/internal/yaman/container"
+	"github.com/willdurand/containers/internal/yaman/network"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
 // ContainerListItem contains the data about a container for the user.
 type ContainerListItem struct {
-	ID      string
-	Image   string
-	Command string
-	Status  string
-	Name    string
-	Created time.Time
+	ID           string
+	Image        string
+	Command      string
+	Status       string
+	Name         string
+	Created      time.Time
+	ExposedPorts []network.ExposedPort
 }
 
 // ContainerList contains the list of containers to show to the user.
@@ -81,12 +83,13 @@ func ListContainers(rootDir string, all bool) (ContainerList, error) {
 		}
 
 		list = append(list, ContainerListItem{
-			ID:      shim.Container.ID,
-			Image:   shim.Container.Image.FQIN(),
-			Command: strings.Join(shim.Container.Command(), " "),
-			Status:  status,
-			Name:    shim.Container.Opts.Name,
-			Created: shim.Container.CreatedAt,
+			ID:           shim.Container.ID,
+			Image:        shim.Container.Image.FQIN(),
+			Command:      strings.Join(shim.Container.Command(), " "),
+			Status:       status,
+			Name:         shim.Container.Opts.Name,
+			Created:      shim.Container.CreatedAt,
+			ExposedPorts: shim.Container.ExposedPorts,
 		})
 	}
 

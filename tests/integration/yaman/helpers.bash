@@ -6,6 +6,7 @@ TIMEOUT=30s
 
 DOCKER_ALPINE=docker.io/library/alpine
 DOCKER_HELLO_WORLD=docker.io/willdurand/hello-world
+DOCKER_REDIS=docker.io/library/redis
 QUAY_ALPINE=quay.io/aptible/alpine
 
 function run_yaman() {
