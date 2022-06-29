@@ -138,7 +138,11 @@ func (c *Container) Mount() error {
 		hostname = c.ID
 	}
 
-	c.Config = runtime.BaseSpec(c.Rootfs())
+	c.Config, err = runtime.BaseSpec(c.Rootfs(), os.Getuid() != 0)
+	if err != nil {
+		return err
+	}
+
 	c.Config.Process = &runtimespec.Process{
 		Terminal: c.Opts.Tty,
 		User: runtimespec.User{

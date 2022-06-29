@@ -105,22 +105,11 @@ func Create(rootDir string, opts CreateOpts) error {
 		}
 	}
 
-	var uidMappings []syscall.SysProcIDMap
-	for _, m := range container.Spec().Linux.UIDMappings {
-		uidMappings = append(uidMappings, syscall.SysProcIDMap{
-			ContainerID: int(m.ContainerID),
-			HostID:      int(m.HostID),
-			Size:        int(m.Size),
-		})
-	}
-
-	var gidMappings []syscall.SysProcIDMap
-	for _, m := range container.Spec().Linux.GIDMappings {
-		gidMappings = append(gidMappings, syscall.SysProcIDMap{
-			ContainerID: int(m.ContainerID),
-			HostID:      int(m.HostID),
-			Size:        int(m.Size),
-		})
+	env := os.Environ()
+	if cloneFlags&syscall.CLONE_NEWUSER != syscall.CLONE_NEWUSER {
+		// When we don't have a user namespace, there is no need to re-exec because
+		// we won't configure the uid/gid maps.
+		env = append(env, "_YACR_CONTAINER_REEXEC=1")
 	}
 
 	self, err := os.Executable()
@@ -131,10 +120,9 @@ func Create(rootDir string, opts CreateOpts) error {
 		Path: self,
 		Args: append([]string{"yacr"}, containerArgs...),
 		SysProcAttr: &syscall.SysProcAttr{
-			Cloneflags:  uintptr(cloneFlags),
-			UidMappings: uidMappings,
-			GidMappings: gidMappings,
+			Cloneflags: uintptr(cloneFlags),
 		},
+		Env: env,
 	}
 
 	logrus.WithFields(logrus.Fields{
@@ -186,6 +174,54 @@ func Create(rootDir string, opts CreateOpts) error {
 
 		if err := containerProcess.Start(); err != nil {
 			return fmt.Errorf("failed to create container (2): %w", err)
+		}
+	}
+
+	if cloneFlags&syscall.CLONE_NEWUSER == syscall.CLONE_NEWUSER {
+		newuidmap, err := exec.LookPath("newuidmap")
+		if err != nil {
+			return err
+		}
+
+		var uidMap []string
+		for _, m := range container.Spec().Linux.UIDMappings {
+			uidMap = append(uidMap, []string{
+				strconv.Itoa(int(m.ContainerID)),
+				strconv.Itoa(int(m.HostID)),
+				strconv.Itoa(int(m.Size)),
+			}...)
+		}
+
+		newuidmapCmd := exec.Command(newuidmap, append(
+			[]string{strconv.Itoa(containerProcess.Process.Pid)}, uidMap...,
+		)...)
+		logrus.WithField("command", newuidmapCmd.String()).Debug("configuring uidmap")
+
+		if err := newuidmapCmd.Run(); err != nil {
+			return fmt.Errorf("newuidmap failed: %w", err)
+		}
+
+		newgidmap, err := exec.LookPath("newgidmap")
+		if err != nil {
+			return err
+		}
+
+		var gidMap []string
+		for _, m := range container.Spec().Linux.GIDMappings {
+			gidMap = append(gidMap, []string{
+				strconv.Itoa(int(m.ContainerID)),
+				strconv.Itoa(int(m.HostID)),
+				strconv.Itoa(int(m.Size)),
+			}...)
+		}
+
+		newgidmapCmd := exec.Command(newgidmap, append(
+			[]string{strconv.Itoa(containerProcess.Process.Pid)}, gidMap...,
+		)...)
+		logrus.WithField("command", newgidmapCmd.String()).Debug("configuring gidmap")
+
+		if err := newgidmapCmd.Run(); err != nil {
+			return fmt.Errorf("newgidmap failed: %w", err)
 		}
 	}
 

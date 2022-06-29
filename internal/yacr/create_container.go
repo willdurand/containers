@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/yacr/container"
@@ -18,6 +19,20 @@ import (
 )
 
 func CreateContainer(rootDir string, opts CreateOpts) error {
+	if os.Getenv("_YACR_CONTAINER_REEXEC") != "1" {
+		// Re-exec to take uid/gid map into account.
+		logrus.Debug("re-executing create container")
+		// HACK: Pretty sure this is going to come back to bite us in the future
+		// but... it works for now.
+		time.Sleep(50 * time.Millisecond)
+
+		env := append(os.Environ(), "_YACR_CONTAINER_REEXEC=1")
+
+		if err := syscall.Exec("/proc/self/exe", os.Args, env); err != nil {
+			return err
+		}
+	}
+
 	container, err := container.LoadFromContainer(rootDir, opts.ID)
 	if err != nil {
 		return err
@@ -79,7 +94,7 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 	}
 
 	// Prevent mount propagation back to other namespaces.
-	if err := syscall.Mount("", "/", "", uintptr(mountFlag|syscall.MS_REC), ""); err != nil {
+	if err := syscall.Mount("none", "/", "", uintptr(mountFlag|syscall.MS_REC), ""); err != nil {
 		return fmt.Errorf("failed to prevent mount propagation: %w", err)
 	}
 

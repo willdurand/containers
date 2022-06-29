@@ -38,5 +38,10 @@ func spec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return encoder.Encode(runtime.BaseSpec(rootfs))
+	spec, err := runtime.BaseSpec(rootfs, os.Getuid() != 0)
+	if err != nil {
+		return err
+	}
+
+	return encoder.Encode(spec)
 }

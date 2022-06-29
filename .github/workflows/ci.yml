@@ -29,7 +29,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update -q -y
-        sudo apt-get install -q -y fuse-overlayfs bats slirp4netns
+        sudo apt-get install -q -y fuse-overlayfs slirp4netns uidmap
 
     - name: Build and install
       run: |
@@ -58,5 +58,5 @@ jobs:
         export YAMAN_ROOT_DIR=~/.run/yaman
 
         make alpine_bundle > /dev/null
-        
+
         bats tests/integration/yacs/ tests/integration/yaman/
