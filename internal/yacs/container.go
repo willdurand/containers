@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/internal/cmd"
 	"github.com/willdurand/containers/internal/yacs/log"
 	"github.com/willdurand/containers/thirdparty/runc/libcontainer/utils"
 	"golang.org/x/sys/unix"
@@ -235,7 +236,7 @@ func (y *Yacs) createContainer() {
 		exit := exec.Command(y.exitCommand, y.exitCommandArgs...)
 		logrus.WithField("command", exit.String()).Debug("execute exit command")
 
-		if err := exit.Run(); err != nil {
+		if err := cmd.Run(exit); err != nil {
 			logrus.WithError(err).Warn("exit command failed")
 		}
 	}
@@ -283,19 +284,28 @@ func maybeReturnRuntimeError(y *Yacs, originalError error) error {
 	}
 	defer logFile.Close()
 
-	var lastLine []byte
+	// Let's consider the two last lines in the log file.
+	lastLines := [][]byte{[]byte(""), []byte("")}
+
 	scanner := bufio.NewScanner(logFile)
 	for scanner.Scan() {
-		lastLine = scanner.Bytes()
+		lastLines[0] = lastLines[1]
+		lastLines[1] = scanner.Bytes()
 	}
 
-	log := make(map[string]string)
-	if err := json.Unmarshal(lastLine, &log); err != nil {
-		return originalError
-	}
+	for _, lastLine := range lastLines {
+		log := make(map[string]string)
+		if err := json.Unmarshal(lastLine, &log); err != nil {
+			return originalError
+		}
 
-	if msg := log["msg"]; msg != "" {
-		return errors.New(msg)
+		if log["level"] != "error" {
+			continue
+		}
+
+		if msg := log["msg"]; msg != "" {
+			return errors.New(msg)
+		}
 	}
 
 	return originalError

@@ -13,6 +13,7 @@ import (
 	"github.com/creack/pty"
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/internal/cmd"
 	"github.com/willdurand/containers/internal/yacr/container"
 	"github.com/willdurand/containers/internal/yacr/ipc"
 	"golang.org/x/sys/unix"
@@ -197,7 +198,7 @@ func Create(rootDir string, opts CreateOpts) error {
 		)...)
 		logrus.WithField("command", newuidmapCmd.String()).Debug("configuring uidmap")
 
-		if err := newuidmapCmd.Run(); err != nil {
+		if err := cmd.Run(newuidmapCmd); err != nil {
 			return fmt.Errorf("newuidmap failed: %w", err)
 		}
 
@@ -220,7 +221,7 @@ func Create(rootDir string, opts CreateOpts) error {
 		)...)
 		logrus.WithField("command", newgidmapCmd.String()).Debug("configuring gidmap")
 
-		if err := newgidmapCmd.Run(); err != nil {
+		if err := cmd.Run(newgidmapCmd); err != nil {
 			return fmt.Errorf("newgidmap failed: %w", err)
 		}
 	}
