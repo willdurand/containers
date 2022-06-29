@@ -267,7 +267,7 @@ func Create(rootDir string, opts CreateOpts) error {
 
 	// Write the container PID to the pid file if supplied.
 	if opts.PidFile != "" {
-		if err := ioutil.WriteFile(opts.PidFile, []byte(strconv.FormatInt(int64(containerPid), 10)), 0o644); err != nil {
+		if err := ioutil.WriteFile(opts.PidFile, []byte(strconv.Itoa(containerPid)), 0o644); err != nil {
 			return fmt.Errorf("failed to write to pid file: %w", err)
 		}
 	}
