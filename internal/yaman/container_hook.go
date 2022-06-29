@@ -50,7 +50,7 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 
 		if err := ioutil.WriteFile(
 			shim.Slirp4netnsPidFilePath(),
-			[]byte(strconv.FormatInt(int64(slirp.Process.Pid), 10)),
+			[]byte(strconv.Itoa(slirp.Process.Pid)),
 			0o644,
 		); err != nil {
 			return err
