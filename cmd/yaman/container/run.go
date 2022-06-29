@@ -2,15 +2,11 @@ package container
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/yaman"
-	"github.com/willdurand/containers/internal/yaman/container"
 	"github.com/willdurand/containers/internal/yaman/registry"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
@@ -42,24 +38,10 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	// container options
-	name, _ := cmd.Flags().GetString("name")
-	if name == "" {
-		rand.Seed(time.Now().UnixNano())
-		name = namesgenerator.GetRandomName(0)
-	}
-	rm, _ := cmd.Flags().GetBool("rm")
-	hostname, _ := cmd.Flags().GetString("hostname")
-	interactive, _ := cmd.Flags().GetBool("interactive")
-	tty, _ := cmd.Flags().GetBool("tty")
+	containerOpts := makeContainerOptsFromCommand(cmd, args[1:])
 	detach, _ := cmd.Flags().GetBool("detach")
-	containerOpts := container.ContainerOpts{
-		Name:        name,
-		Command:     args[1:],
-		Remove:      rm,
-		Hostname:    hostname,
-		Interactive: interactive,
-		Tty:         tty,
-		Detach:      detach,
+	if detach {
+		containerOpts.Detach = true
 	}
 
 	// shim options

@@ -21,6 +21,7 @@ import (
 type ContainerOpts struct {
 	Name        string
 	Command     []string
+	Entrypoint  []string
 	Remove      bool
 	Hostname    string
 	Interactive bool
@@ -69,7 +70,12 @@ func (c *Container) Rootfs() string {
 func (c *Container) Command() []string {
 	var args []string
 	if conf, err := c.Image.Config(); err == nil {
-		args = conf.Config.Entrypoint
+		if len(c.Opts.Entrypoint) > 0 {
+			args = c.Opts.Entrypoint
+		} else {
+			args = conf.Config.Entrypoint
+		}
+
 		if len(c.Opts.Command) > 0 {
 			args = append(args, c.Opts.Command...)
 		} else {
