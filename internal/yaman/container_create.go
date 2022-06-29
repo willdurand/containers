@@ -17,7 +17,10 @@ func Create(rootDir, imageName string, pullOpts registry.PullOpts, containerOpts
 		return nil, nil, err
 	}
 
-	container := container.New(rootDir, img, containerOpts)
+	container, err := container.New(rootDir, img, containerOpts)
+	if err != nil {
+		return nil, nil, err
+	}
 	defer func() {
 		if !container.IsStarted() {
 			container.Delete()

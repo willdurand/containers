@@ -46,11 +46,11 @@ const (
 	logFileName = "container.log"
 )
 
-func New(rootDir string, img *image.Image, opts ContainerOpts) *Container {
+func New(rootDir string, img *image.Image, opts ContainerOpts) (*Container, error) {
 	id := strings.ReplaceAll(uuid.NewString(), "-", "")
 	baseDir := filepath.Join(GetBaseDir(rootDir), id)
 
-	return &Container{
+	ctr := &Container{
 		ID:          id,
 		BaseDir:     baseDir,
 		Image:       img,
@@ -58,6 +58,12 @@ func New(rootDir string, img *image.Image, opts ContainerOpts) *Container {
 		CreatedAt:   time.Now(),
 		LogFilePath: filepath.Join(baseDir, logFileName),
 	}
+
+	if err := ctr.Refresh(); err != nil {
+		return nil, err
+	}
+
+	return ctr, nil
 }
 
 // Rootfs returns the absolute path to the root filesystem.
@@ -69,18 +75,17 @@ func (c *Container) Rootfs() string {
 // container when it starts.
 func (c *Container) Command() []string {
 	var args []string
-	if conf, err := c.Image.Config(); err == nil {
-		if len(c.Opts.Entrypoint) > 0 {
-			args = c.Opts.Entrypoint
-		} else {
-			args = conf.Config.Entrypoint
-		}
 
-		if len(c.Opts.Command) > 0 {
-			args = append(args, c.Opts.Command...)
-		} else {
-			args = append(args, conf.Config.Cmd...)
-		}
+	if len(c.Opts.Entrypoint) > 0 {
+		args = c.Opts.Entrypoint
+	} else {
+		args = c.Image.Config.Config.Entrypoint
+	}
+
+	if len(c.Opts.Command) > 0 {
+		args = append(args, c.Opts.Command...)
+	} else {
+		args = append(args, c.Image.Config.Config.Cmd...)
 	}
 
 	return args
@@ -89,11 +94,6 @@ func (c *Container) Command() []string {
 // Mount creates a bundle configuration for the container and mounts its root
 // filesystem.
 func (c *Container) Mount() error {
-	imageConfig, err := c.Image.Config()
-	if err != nil {
-		return err
-	}
-
 	for _, dir := range []string{
 		c.BaseDir,
 		c.datadir(),
@@ -136,8 +136,8 @@ func (c *Container) Mount() error {
 	// Convert image config into a runtime config.
 	// See: https://github.com/opencontainers/image-spec/blob/main/conversion.md
 	cwd := "/"
-	if imageConfig.Config.WorkingDir != "" {
-		cwd = imageConfig.Config.WorkingDir
+	if c.Image.Config.Config.WorkingDir != "" {
+		cwd = c.Image.Config.Config.WorkingDir
 	}
 
 	hostname := c.Opts.Hostname
@@ -157,7 +157,7 @@ func (c *Container) Mount() error {
 			GID: 0,
 		},
 		Args: c.Command(),
-		Env:  imageConfig.Config.Env,
+		Env:  c.Image.Config.Config.Env,
 		Cwd:  cwd,
 	}
 	c.Config.Hostname = hostname
@@ -220,6 +220,15 @@ func (c *Container) Delete() error {
 	}
 
 	logrus.WithField("id", c.ID).Debug("container deleted")
+	return nil
+}
+
+// Refresh reloads the missing container properties (from disk).
+func (c *Container) Refresh() error {
+	if err := c.Image.Refresh(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

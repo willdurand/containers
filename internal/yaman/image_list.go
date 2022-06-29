@@ -87,8 +87,8 @@ func ListImages(rootDir string) (ImageList, error) {
 						return list, err
 					}
 
-					config, err := img.Config()
-					if err != nil {
+					// We need to refresh the image to load the config/manifest.
+					if err := img.Refresh(); err != nil {
 						return list, err
 					}
 
@@ -96,7 +96,7 @@ func ListImages(rootDir string) (ImageList, error) {
 						Registry: img.Hostname,
 						Name:     img.Name,
 						Version:  img.Version,
-						Created:  *config.Created,
+						Created:  *img.Config.Created,
 						Pulled:   version.ModTime(),
 					})
 				}

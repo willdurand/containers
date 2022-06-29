@@ -50,12 +50,8 @@ func Inspect(rootDir, id string) (ContainerInspect, error) {
 	inspect.Started = shim.Container.StartedAt
 	inspect.Exited = shim.Container.ExitedAt
 	inspect.Image.Image = *shim.Container.Image
-	if config, err := shim.Container.Image.Config(); err == nil {
-		inspect.Image.Config = *config
-	}
-	if manifest, err := shim.Container.Image.Manifest(); err == nil {
-		inspect.Image.Manifest = *manifest
-	}
+	inspect.Image.Config = *shim.Container.Image.Config
+	inspect.Image.Manifest = *shim.Container.Image.Manifest
 	if state, err := shim.GetState(); err == nil {
 		inspect.Shim.YacsState = *state
 	}

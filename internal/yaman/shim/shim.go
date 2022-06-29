@@ -91,6 +91,10 @@ func Load(rootDir, id string) (*Shim, error) {
 		return nil, err
 	}
 
+	if err := shim.Container.Refresh(); err != nil {
+		return nil, err
+	}
+
 	return shim, nil
 }
 
