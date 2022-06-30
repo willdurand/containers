@@ -56,6 +56,11 @@ hello_world_image:
 	docker build -t willdurand/hello-world .
 .PHONY: hello_world_image
 
+apt_install:
+	apt-get update
+	apt-get install -y fuse-overlayfs slirp4netns uidmap netcat jq
+.PHONY: apt_install
+
 help: ## show this help message
 help:
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

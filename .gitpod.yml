@@ -1,8 +1,9 @@
 tasks:
   - name: bootstrap
     init: |
-      sudo apt-get install -y fuse-overlayfs slirp4netns uidmap
+      sudo make apt_install
       npm install -g bats
+      sudo ln -s "$(which bats)" /usr/local/bin/bats
 
     before: |
       # This is needed to hide a warning in `sudo make install`.
