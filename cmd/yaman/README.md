@@ -15,6 +15,8 @@ Yaman supports the following registries:
 
 ⚠️ You must have a recent version of [fuse-overlayfs][] installed. When `fuse-overlayfs` is not installed, Yaman will fallback to native OverlayFS but that usually requires elevated privileges (with `sudo` for example).
 
+⚠️ On Gitpod, and because of some limitations, `yaman` should be used with elevated privileges (e.g. using `sudo`).
+
 ### `yaman container`
 
 Manage containers.
@@ -30,7 +32,7 @@ $ yaman c create -it docker.io/library/alpine
 8c4c39aa7819463e9be362dcf0b053df
 
 $ yaman c start --attach 8c4c39aa7819463e9be362dcf0b053df
-/ # 
+/ #
 ```
 
 #### `yaman container run`
@@ -110,11 +112,13 @@ uid=0(root) gid=0(root) groups=0(root)
 
 ##### Other options
 
-| Option      | Description                                       |
-| ----------- | ------------------------------------------------- |
-| `--name`    | Assign a name to the container                    |
-| `--rm`      | Automatically remove the container when it exits  |
-| `--runtime` | Specify the OCI runtime to use for this container |
+| Option         | Description                                                |
+| -------------- | ---------------------------------------------------------- |
+| `--entrypoint` | Overwrite the default entrypoint set by the image          |
+| `--name`       | Assign a name to the container                             |
+| `--pull`       | Pull image before running ("always", "missing" or "never") |
+| `--rm`         | Automatically remove the container when it exits           |
+| `--runtime`    | Specify the OCI runtime to use for this container          |
 
 ##### Example with Red Hat Quay
 
@@ -125,11 +129,9 @@ $ yaman c run -it quay.io/aptible/alpine
 / # exit
 
 $ yaman c list -a
-CONTAINER ID                       IMAGE                           COMMAND   STATUS                    NAME
-b2985e49d1f34d539599bba4fc0e789d   quay.io/aptible/alpine:latest   /bin/sh   Exited (0) 1 second ago   sad_mclean
+CONTAINER ID                       IMAGE                           COMMAND     CREATED         STATUS                     PORTS       NAME
+b2985e49d1f34d539599bba4fc0e789d   quay.io/aptible/alpine:latest   /bin/sh     5 seconds ago   Exited (0) 3 seconds ago               naughty_sutherland
 ```
-
-
 
 #### `yaman container start`
 
@@ -137,15 +139,15 @@ Start a created container:
 
 ```console
 $ yaman c ls -a
-CONTAINER ID                       IMAGE                             COMMAND     CREATED              STATUS                      NAME
-a5cbe56e57bf4370b93685543e6ecaf1   docker.io/library/alpine:latest   /bin/sh     5 seconds ago        created                     amazing_lamarr
+CONTAINER ID                       IMAGE                             COMMAND     CREATED          STATUS                     PORTS       NAME
+a5cbe56e57bf4370b93685543e6ecaf1   docker.io/library/alpine:latest   /bin/sh     9 seconds ago    created                                ecstatic_mahavira
 
 $ yaman c start -a a5cbe56e57bf4370b93685543e6ecaf1
 / # exit
 
 $ yaman c ls -a
-CONTAINER ID                       IMAGE                             COMMAND     CREATED              STATUS                          NAME
-a5cbe56e57bf4370b93685543e6ecaf1   docker.io/library/alpine:latest   /bin/sh     About a minute ago   Exited (0) 4 seconds ago        amazing_lamarr
+CONTAINER ID                       IMAGE                             COMMAND     CREATED              STATUS                      PORTS       NAME
+a5cbe56e57bf4370b93685543e6ecaf1   docker.io/library/alpine:latest   /bin/sh     About a minute ago   Exited (0) 4 seconds ago                amazing_lamarr
 ```
 
 #### `yaman container inspect`
@@ -159,8 +161,8 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
 
 ```json
 {
-  "Id": "86f57361baf946f7b5e3d20b5fdde4ae",
-  "Root": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae",
+  "Id": "2be09afa2b3b47c2a9975017aa2913fc",
+  "Root": "/tmp/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc",
   "Config": {
     "ociVersion": "1.0.2",
     "process": {
@@ -178,9 +180,9 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
       "cwd": "/"
     },
     "root": {
-      "path": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae/rootfs"
+      "path": "/tmp/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc/rootfs"
     },
-    "hostname": "86f57361baf946f7b5e3d20b5fdde4ae",
+    "hostname": "2be09afa2b3b47c2a9975017aa2913fc",
     "mounts": [
       {
         "destination": "/proc",
@@ -231,18 +233,6 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
           "noexec",
           "nodev"
         ]
-      },
-      {
-        "destination": "/sys",
-        "type": "none",
-        "source": "/sys",
-        "options": [
-          "rbind",
-          "nosuid",
-          "noexec",
-          "nodev",
-          "ro"
-        ]
       }
     ],
     "hooks": {
@@ -259,20 +249,6 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
       ]
     },
     "linux": {
-      "uidMappings": [
-        {
-          "containerID": 0,
-          "hostID": 0,
-          "size": 1
-        }
-      ],
-      "gidMappings": [
-        {
-          "containerID": 0,
-          "hostID": 0,
-          "size": 1
-        }
-      ],
       "namespaces": [
         {
           "type": "ipc"
@@ -287,34 +263,33 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
           "type": "pid"
         },
         {
-          "type": "user"
-        },
-        {
           "type": "uts"
         }
       ]
     }
   },
   "Options": {
-    "Name": "upbeat_mclaren",
+    "Name": "romantic_mclaren",
     "Command": [
       "sleep",
       "1000"
     ],
-    "Remove": true,
+    "Entrypoint": null,
+    "Remove": false,
     "Hostname": "",
     "Interactive": false,
     "Tty": false,
     "Detach": true
   },
-  "Created": "2022-06-25T14:16:12.982091802Z",
-  "Started": "2022-06-25T14:16:13.020406768Z",
+  "Created": "2022-06-30T06:45:16.474831162Z",
+  "Started": "2022-06-30T06:45:16.557161738Z",
   "Exited": "0001-01-01T00:00:00Z",
+  "ExposedPorts": [],
   "Image": {
     "Hostname": "docker.io",
     "Name": "library/alpine",
     "Version": "latest",
-    "BaseDir": "/run/user/1000/yaman/images/docker.io/library/alpine/latest",
+    "BaseDir": "/tmp/yaman/images/docker.io/library/alpine/latest",
     "Config": {
       "created": "2022-05-23T19:19:31.970967174Z",
       "architecture": "amd64",
@@ -363,20 +338,20 @@ $ yaman c inspect 2be09afa2b3b47c2a9975017aa2913fc
     }
   },
   "Shim": {
-    "ID": "86f57361baf946f7b5e3d20b5fdde4ae",
+    "ID": "2be09afa2b3b47c2a9975017aa2913fc",
     "Runtime": "yacr",
     "State": {
       "ociVersion": "1.0.2",
-      "id": "86f57361baf946f7b5e3d20b5fdde4ae",
+      "id": "2be09afa2b3b47c2a9975017aa2913fc",
       "status": "running",
-      "pid": 103614,
-      "bundle": "/run/user/1000/yaman/containers/86f57361baf946f7b5e3d20b5fdde4ae"
+      "pid": 12507,
+      "bundle": "/tmp/yaman/containers/2be09afa2b3b47c2a9975017aa2913fc"
     },
     "Status": {},
     "Options": {
       "Runtime": "yacr"
     },
-    "SocketPath": "/run/user/1000/yacs/86f57361baf946f7b5e3d20b5fdde4ae/shim.sock"
+    "SocketPath": "/tmp/yacs/2be09afa2b3b47c2a9975017aa2913fc/shim.sock"
   }
 }
 ```
@@ -395,8 +370,8 @@ List all containers and not only those currently running:
 
 ```console
 $ yaman c list --all
-CONTAINER ID                       IMAGE                             COMMAND    STATUS                          NAME
-1234e4a90ed042dc96b1a6f80417b75a   docker.io/library/alpine:latest   hostname   Exited (0) About a minute ago   great_hermann
+CONTAINER ID                       IMAGE                             COMMAND      CREATED              STATUS                          PORTS       NAME
+1234e4a90ed042dc96b1a6f80417b75a   docker.io/library/alpine:latest   hostname     5 minutes ago        Exited (0) About a minute ago               great_hermann
 ```
 
 #### `yaman container delete`

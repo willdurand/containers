@@ -16,6 +16,7 @@ import (
 	"github.com/willdurand/containers/internal/cmd"
 	"github.com/willdurand/containers/internal/runtime"
 	"github.com/willdurand/containers/internal/yaman/image"
+	"github.com/willdurand/containers/internal/yaman/network"
 )
 
 type ContainerOpts struct {
@@ -27,19 +28,21 @@ type ContainerOpts struct {
 	Interactive bool
 	Tty         bool
 	Detach      bool
+	PublishAll  bool
 }
 
 type Container struct {
-	ID          string
-	BaseDir     string
-	Image       *image.Image
-	Config      *runtimespec.Spec
-	Opts        ContainerOpts
-	CreatedAt   time.Time
-	StartedAt   time.Time
-	ExitedAt    time.Time
-	LogFilePath string
-	UseFuse     bool
+	ID           string
+	BaseDir      string
+	Image        *image.Image
+	Config       *runtimespec.Spec
+	Opts         ContainerOpts
+	ExposedPorts []network.ExposedPort
+	CreatedAt    time.Time
+	StartedAt    time.Time
+	ExitedAt     time.Time
+	LogFilePath  string
+	UseFuse      bool
 }
 
 const (
@@ -62,6 +65,12 @@ func New(rootDir string, img *image.Image, opts ContainerOpts) (*Container, erro
 	if err := ctr.Refresh(); err != nil {
 		return nil, err
 	}
+
+	ports, err := ctr.getExposedPorts()
+	if err != nil {
+		return nil, err
+	}
+	ctr.ExposedPorts = ports
 
 	return ctr, nil
 }
@@ -230,6 +239,28 @@ func (c *Container) Refresh() error {
 	}
 
 	return nil
+}
+
+func (c *Container) getExposedPorts() ([]network.ExposedPort, error) {
+	ports := make([]network.ExposedPort, 0)
+
+	exposedPorts, err := c.Image.ExposedPorts()
+	if err != nil {
+		return ports, err
+	}
+
+	for _, port := range exposedPorts {
+		if c.Opts.PublishAll {
+			hostPort, err := network.GetRandomPort()
+			if err != nil {
+				return ports, err
+			}
+			port.HostPort = hostPort
+		}
+		ports = append(ports, port)
+	}
+
+	return ports, nil
 }
 
 func (c *Container) lowerdir() string {

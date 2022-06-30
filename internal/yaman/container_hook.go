@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"github.com/willdurand/containers/internal/yaman/network"
 	"github.com/willdurand/containers/internal/yaman/shim"
 )
 
@@ -28,29 +29,22 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 
 	switch hookName {
 	case "network-setup":
-		slirp4netns, err := exec.LookPath("slirp4netns")
+		slirp4netns, err := network.NewSlirp4netns(state.Pid, shim.Slirp4netnsApiSocketPath())
 		if err != nil {
 			return err
 		}
 
-		slirp := exec.Command(slirp4netns, []string{
-			"--configure",
-			"--mtu=65520",
-			"--disable-host-loopback",
-			strconv.Itoa(state.Pid),
-			"en0",
-		}...)
-
-		logger.WithField("command", slirp.String()).Debug("starting slirp4netns")
-
-		if err := slirp.Start(); err != nil {
+		pid, err := slirp4netns.Start()
+		if err != nil {
 			return err
 		}
-		defer slirp.Process.Release()
 
+		// Write PID file for later. Note that we could have used the exit-fd as
+		// well since this PID file is mainly used to terminate the slirp4netns
+		// process when we clean-up the container.
 		if err := ioutil.WriteFile(
 			shim.Slirp4netnsPidFilePath(),
-			[]byte(strconv.Itoa(slirp.Process.Pid)),
+			[]byte(strconv.Itoa(pid)),
 			0o644,
 		); err != nil {
 			return err
@@ -65,7 +59,14 @@ func ProcessHook(rootDir, hookName string, r io.Reader) error {
 			logger.WithError(err).Warn("failed to write /etc/resolv.conf")
 		}
 
-		logger.WithField("pid", slirp.Process.Pid).Debug("slirp4netns started")
+		// Expose ports
+		if len(shim.Container.ExposedPorts) > 0 {
+			// TODO: use ready-FD instead...
+			time.Sleep(50 * time.Millisecond)
+			if err := slirp4netns.ExposePorts(shim.Container.ExposedPorts); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
