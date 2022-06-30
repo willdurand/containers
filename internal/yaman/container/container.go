@@ -20,7 +20,6 @@ import (
 )
 
 type ContainerOpts struct {
-	Name        string
 	Command     []string
 	Entrypoint  []string
 	Remove      bool
