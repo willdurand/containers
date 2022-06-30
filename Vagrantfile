@@ -13,9 +13,8 @@ echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/golang.sh >
 echo '==> configure git'
 git config --global --add safe.directory /vagrant
 
-echo '==> install fuse-overlayfs, slirp4netns, uidmap'
-apt-get update
-apt-get install -y make fuse-overlayfs slirp4netns uidmap
+echo '==> install required packages'
+make -C /vagrant apt_install
 SCRIPT
   end
 end

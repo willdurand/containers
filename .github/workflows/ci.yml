@@ -28,8 +28,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update -q -y
-        sudo apt-get install -q -y fuse-overlayfs slirp4netns uidmap
+        sudo make apt_install
 
     - name: Build and install
       run: |
