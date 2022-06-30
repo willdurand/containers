@@ -21,7 +21,6 @@ type ContainerListItem struct {
 	Image        string
 	Command      string
 	Status       string
-	Name         string
 	Created      time.Time
 	ExposedPorts []network.ExposedPort
 }
@@ -87,7 +86,6 @@ func ListContainers(rootDir string, all bool) (ContainerList, error) {
 			Image:        shim.Container.Image.FQIN(),
 			Command:      strings.Join(shim.Container.Command(), " "),
 			Status:       status,
-			Name:         shim.Container.Opts.Name,
 			Created:      shim.Container.CreatedAt,
 			ExposedPorts: shim.Container.ExposedPorts,
 		})

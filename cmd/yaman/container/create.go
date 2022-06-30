@@ -3,11 +3,8 @@ package container
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
-	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/internal/cli"
@@ -32,7 +29,6 @@ func addCreateFlagsToCommand(cmd *cobra.Command) {
 	cmd.Flags().String("entrypoint", "", "overwrite the default entrypoint set by the image")
 	cmd.Flags().String("hostname", "", "set the container hostname")
 	cmd.Flags().BoolP("interactive", "i", false, "keep stdin open")
-	cmd.Flags().String("name", "", "assign a name to the container")
 	cmd.Flags().BoolP("publish-all", "P", false, "publish all exposed ports to random ports")
 	cmd.Flags().String("pull", string(registry.PullMissing), `pull image before running ("always"|"missing"|"never")`)
 	cmd.Flags().Bool("rm", false, "automatically remove the container when it exits")
@@ -52,19 +48,11 @@ func makeContainerOptsFromCommand(cmd *cobra.Command, command []string) containe
 
 	hostname, _ := cmd.Flags().GetString("hostname")
 	interactive, _ := cmd.Flags().GetBool("interactive")
-
-	name, _ := cmd.Flags().GetString("name")
-	if name == "" {
-		rand.Seed(time.Now().UnixNano())
-		name = namesgenerator.GetRandomName(0)
-	}
-
 	publishAll, _ := cmd.Flags().GetBool("publish-all")
 	rm, _ := cmd.Flags().GetBool("rm")
 	tty, _ := cmd.Flags().GetBool("tty")
 
 	return container.ContainerOpts{
-		Name:        name,
 		Command:     command,
 		Entrypoint:  entrypoint,
 		Remove:      rm,

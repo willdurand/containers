@@ -115,7 +115,6 @@ uid=0(root) gid=0(root) groups=0(root)
 | Option         | Description                                                |
 | -------------- | ---------------------------------------------------------- |
 | `--entrypoint` | Overwrite the default entrypoint set by the image          |
-| `--name`       | Assign a name to the container                             |
 | `--pull`       | Pull image before running ("always", "missing" or "never") |
 | `--rm`         | Automatically remove the container when it exits           |
 | `--runtime`    | Specify the OCI runtime to use for this container          |

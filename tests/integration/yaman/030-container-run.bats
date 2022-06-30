@@ -44,17 +44,6 @@ load helpers
   assert_output "$hostname"
 }
 
-@test "yaman container run --name" {
-  cid=$(run_yaman_and_get_cid container run -d --rm --name "some-name" "$DOCKER_ALPINE" -- sleep 10)
-
-  run_yaman container list
-  assert_success
-  assert_output --regexp "$cid(.+)\ssome-name$"
-
-  run_yaman container stop "$cid"
-  assert_success
-}
-
 @test "yaman container run image without /etc/resolv.conf" {
   run_yaman container run --rm "$DOCKER_HELLO_WORLD"
   assert_success
