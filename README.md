@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/willdurand/containers/actions/workflows/ci.yml/badge.svg)](https://github.com/willdurand/containers/actions/workflows/ci.yml)
 
+<p align="center">
+  <img src="./docs/yaman.svg" />
+</p>
+
 This is a repository with some code I wrote to **learn** more about containers. It currently contains:
 
 - [`yacr`](./cmd/yacr/README.md): a container runtime that implements the [runtime-spec][]
