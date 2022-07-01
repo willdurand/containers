@@ -149,13 +149,13 @@ PID   USER     TIME  COMMAND
 Let's create a new Docker daemon with the `yacr` runtime:
 
 ```console
-$ ./scripts/run-dockerd
+$ ./extras/docker/scripts/run-dockerd
 ```
 
-In another terminal, you can connect to this daemon by running `docker` with `-H unix:///tmp/d2/d2.socket` or use the `./scripts/docker` wrapper in this repository:
+In another terminal, you can connect to this daemon by running `docker` with `-H unix:///tmp/d2/d2.socket` or use the `./extras/docker/scripts/docker` wrapper in this repository:
 
 ```console
-$ ./scripts/docker info
+$ ./extras/docker/scripts/docker info
 [...]
  Runtimes: gitpod io.containerd.runc.v2 io.containerd.runtime.v1.linux runc yacr
  Default Runtime: yacr
@@ -165,7 +165,7 @@ $ ./scripts/docker info
 We can then use Docker as usual:
 
 ```console
-$ ./scripts/docker run --rm -it busybox:latest /bin/sh
+$ ./extras/docker/scripts/docker run --rm -it busybox:latest /bin/sh
 Unable to find image 'busybox:latest' locally
 latest: Pulling from library/busybox
 cecc78ee4075: Pull complete
