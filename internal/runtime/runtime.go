@@ -141,6 +141,25 @@ func BaseSpec(rootfs string, rootless bool) (*runtimespec.Spec, error) {
 			UIDMappings: uidMappings,
 			GIDMappings: gidMappings,
 			Namespaces:  namespaces,
+			MaskedPaths: []string{
+				"/proc/acpi",
+				"/proc/asound",
+				"/proc/kcore",
+				"/proc/keys",
+				"/proc/latency_stats",
+				"/proc/timer_list",
+				"/proc/timer_stats",
+				"/proc/sched_debug",
+				"/sys/firmware",
+				"/proc/scsi",
+			},
+			ReadonlyPaths: []string{
+				"/proc/bus",
+				"/proc/fs",
+				"/proc/irq",
+				"/proc/sys",
+				"/proc/sysrq-trigger",
+			},
 		},
 	}, nil
 }
