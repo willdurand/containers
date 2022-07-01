@@ -40,8 +40,6 @@ func Create(rootDir string, opts CreateOpts) error {
 		return err
 	}
 
-	// TODO: make sure that runtimespec.Version is supported
-
 	// TODO: error when there is no linux configuration
 
 	if err := container.Save(); err != nil {

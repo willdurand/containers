@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/willdurand/containers/internal/user"
@@ -20,6 +21,10 @@ func LoadSpec(bundleDir string) (runtimespec.Spec, error) {
 	}
 	if err := json.Unmarshal(data, &spec); err != nil {
 		return spec, fmt.Errorf("failed to parse config.json: %w", err)
+	}
+
+	if !strings.HasPrefix(spec.Version, "1.0") {
+		return spec, fmt.Errorf("unsupported runtime configuration version '%s'", spec.Version)
 	}
 
 	return spec, nil
