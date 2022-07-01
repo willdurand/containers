@@ -61,3 +61,7 @@ jobs:
         make alpine_bundle > /dev/null
 
         bats tests/integration/yacr/ tests/integration/yacs/ tests/integration/yaman/
+
+    - name: Run OCI runtime tests
+      run: |
+        ./tools/run-oci-runtime-tests
