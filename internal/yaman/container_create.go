@@ -22,7 +22,7 @@ func Create(rootDir, imageName string, pullOpts registry.PullOpts, containerOpts
 		return nil, nil, err
 	}
 	defer func() {
-		if !container.IsStarted() {
+		if !container.IsCreated() {
 			container.Delete()
 		}
 	}()

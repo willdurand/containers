@@ -67,7 +67,10 @@ func NewShimFromFlags(flags *pflag.FlagSet) (*Yacs, error) {
 	stdioDir, _ := flags.GetString("stdio-dir")
 
 	rootDir, _ := flags.GetString("root")
-	baseDir := filepath.Join(rootDir, containerId)
+	baseDir, _ := flags.GetString("base-dir")
+	if baseDir == "" {
+		baseDir = filepath.Join(rootDir, containerId)
+	}
 	if err := os.MkdirAll(baseDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create container directory: %w", err)
 	}
@@ -131,7 +134,6 @@ func (y *Yacs) Run() error {
 
 	err = <-y.containerReady
 	if err != nil {
-		logrus.WithError(err).Error("failed to create container")
 		syncPipe.WriteString(err.Error())
 		return err
 	}
@@ -182,10 +184,10 @@ func (y *Yacs) Err() error {
 	return err
 }
 
-// terminate is called when Yacs should be terminated. It will send a SIGKILL to
-// the container first if it is still alive. Then, it returns the exit command
-// if provided, and delete the container using the OCI runtime. After that, the
-// files created by the shim are also deleted.
+// terminate is called when Yacs should be terminated. It will send a SIGKILL
+// to the container first if it is still alive. Then, it returns the exit
+// command if provided, and delete the container using the OCI runtime. After
+// that, the files created by the shim are also deleted.
 func (y *Yacs) terminate() {
 	logrus.Debug("cleaning up before exiting")
 

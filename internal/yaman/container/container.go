@@ -57,7 +57,6 @@ func New(rootDir string, img *image.Image, opts ContainerOpts) (*Container, erro
 		BaseDir:     baseDir,
 		Image:       img,
 		Opts:        opts,
-		CreatedAt:   time.Now(),
 		LogFilePath: filepath.Join(baseDir, logFileName),
 	}
 
@@ -209,6 +208,12 @@ func (c *Container) Unmount() error {
 	}
 
 	return nil
+}
+
+// IsCreated returns `true` when the container has been created, and `false`
+// otherwise.
+func (c *Container) IsCreated() bool {
+	return !c.CreatedAt.IsZero()
 }
 
 // IsStarted returns `true` when the container has started, and `false` otherwise.

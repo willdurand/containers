@@ -26,18 +26,20 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/cli"
 	"github.com/willdurand/containers/internal/constants"
+	"github.com/willdurand/containers/internal/logs"
 	"github.com/willdurand/containers/internal/yacs"
 	"github.com/willdurand/containers/internal/yaman/container"
 	"golang.org/x/term"
 )
 
 const (
+	logFileName              = "shim.log"
 	stateFileName            = "shim.json"
 	slirp4netnsPidFileName   = "slirp4netns.pid"
 	slirp4netnsApiSocketName = "slirp4netns.sock"
 )
 
-var failedToRetrieveExecutable = regexp.MustCompile("failed to retrieve executable")
+var executableNotFound = regexp.MustCompile("exec: .+? no such file or directory")
 
 // ShimOpts contains the options that can be passed to a shim.
 type ShimOpts struct {
@@ -102,6 +104,15 @@ func Load(rootDir, id string) (*Shim, error) {
 // Create starts a shim process, which will also create a container by invoking
 // an OCI runtime.
 func (s *Shim) Create(rootDir string) error {
+	defer func() {
+		if !s.Container.IsCreated() {
+			emptyState := new(yacs.YacsState)
+			if err := s.cleanUp(emptyState); err != nil {
+				logrus.WithError(err).Info("failed to clean-up shim")
+			}
+		}
+	}()
+
 	if err := s.Container.Mount(); err != nil {
 		return err
 	}
@@ -124,6 +135,11 @@ func (s *Shim) Create(rootDir string) error {
 
 	// Prepare a list of arguments for `yacs`.
 	args := []string{
+		// Specify the base directory so that we keep most of the files in the same
+		// "container directory", which should also help when we need to clean-up
+		// everything because of an error.
+		"--base-dir", filepath.Join(s.BaseDir, "shim"),
+		"--log", s.logFilePath(),
 		// With JSON logs, we can parse the error message in case of an error.
 		"--log-format", "json",
 		"--bundle", s.Container.BaseDir,
@@ -156,22 +172,18 @@ func (s *Shim) Create(rootDir string) error {
 
 	data, err := shimCmd.Output()
 	if err != nil {
-		logrus.Debug("failed to start shim")
-		if exitError, ok := err.(*exec.ExitError); ok {
-			// We attempt to extract the error message from Yacs.
-			log := make(map[string]string)
-			lines := bytes.Split(exitError.Stderr, []byte("\n"))
-			if err := json.Unmarshal(lines[len(lines)-2], &log); err == nil {
-				return errors.New(log["msg"])
-			}
+		err = logs.GetBetterError(s.logFilePath(), err)
+		if executableNotFound.MatchString(err.Error()) {
+			return cli.ExitCodeError{Message: err.Error(), ExitCode: 127}
 		}
+
 		return err
 	}
 
 	// When `yacs` starts, it should print a unix socket path to the standard
 	// output so that we can communicate with it via a HTTP API.
 	s.SocketPath = strings.TrimSpace(string(data))
-	s.Container.StartedAt = time.Now()
+	s.Container.CreatedAt = time.Now()
 
 	return s.save()
 }
@@ -320,9 +332,12 @@ func (s *Shim) StartContainer() error {
 		"cmd": []string{"start"},
 	})
 	if err != nil {
-		if failedToRetrieveExecutable.MatchString(err.Error()) {
+		if executableNotFound.MatchString(err.Error()) {
 			// Remove the prefix set by `sendCommand`.
-			return cli.ExitCodeError{Message: err.Error()[7:], ExitCode: 127}
+			return cli.ExitCodeError{
+				Message:  strings.TrimSuffix(err.Error()[7:], "\n"),
+				ExitCode: 127,
+			}
 		}
 	}
 
@@ -548,12 +563,12 @@ func (s *Shim) cleanUp(state *yacs.YacsState) error {
 		}
 
 		if err := os.Remove(s.Slirp4netnsPidFilePath()); err != nil {
-			logrus.WithError(err).Warn("failed to delete slirp4netns pid file")
+			logrus.WithError(err).Debug("failed to delete slirp4netns pid file")
 		}
 	}
 
 	if err := os.Remove(s.Slirp4netnsApiSocketPath()); err != nil {
-		logrus.WithError(err).Warn("failed to delete slirp4netns socket file")
+		logrus.WithError(err).Debug("failed to delete slirp4netns socket file")
 	}
 
 	// Terminate the shim process by sending a DELETE request.
@@ -631,6 +646,10 @@ func (s *Shim) save() error {
 	}
 
 	return ioutil.WriteFile(s.stateFilePath(), data, 0o644)
+}
+
+func (s *Shim) logFilePath() string {
+	return filepath.Join(s.BaseDir, logFileName)
 }
 
 func (s *Shim) stateFilePath() string {
