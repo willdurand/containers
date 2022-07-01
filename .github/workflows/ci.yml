@@ -58,4 +58,4 @@ jobs:
 
         make alpine_bundle > /dev/null
 
-        bats tests/integration/yacs/ tests/integration/yaman/
+        bats tests/integration/yacr/ tests/integration/yacs/ tests/integration/yaman/
