@@ -59,6 +59,7 @@ hello_world_image:
 apt_install:
 	apt-get update
 	apt-get install -y fuse-overlayfs slirp4netns uidmap netcat jq
+	which runc &> /dev/null || apt-get install -y runc
 .PHONY: apt_install
 
 help: ## show this help message

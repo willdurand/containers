@@ -2,7 +2,7 @@
 
 load helpers
 
-@test "container run --publish-all" {
+@test "yaman container run --publish-all" {
   # We need `--entrypoint` to by-pass an issue with rootless containers and
   # non-root users in containers.
   cid=$(run_yaman_and_get_cid container run -d --rm --entrypoint='["sh", "-c"]' --publish-all "$DOCKER_REDIS")

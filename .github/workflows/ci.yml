@@ -47,6 +47,8 @@ jobs:
         install-go: false
 
     - name: Run integration tests
+      # Force TTY, see: https://github.com/actions/runner/issues/241
+      shell: script --return --quiet --command "bash {0}"
       run: |
         mkdir -p ~/.run/yacr
         mkdir -p ~/.run/yacs

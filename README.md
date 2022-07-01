@@ -21,7 +21,7 @@ This project requires a Linux environment and the following dependencies:
 - `fuse-overlayfs` for rootless containers
 - `uidmap` for rootless containers
 - `slirp4netns` for the network layer (rootfull and rootless containers)
-- `bats`, `netcat` and `jq` for the integration tests
+- `bats`, `netcat`, `jq` and `runc` for the integration tests
 
 You should use Gitpod as mentioned in the previously or [Vagrant][]. It might not be a good idea to run this project on your actual machine.
 
