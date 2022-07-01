@@ -58,6 +58,15 @@ func BaseSpec(rootfs string, rootless bool) (*runtimespec.Spec, error) {
 		},
 	}
 
+	resources := &runtimespec.LinuxResources{
+		Devices: []runtimespec.LinuxDeviceCgroup{
+			{
+				Allow:  false,
+				Access: "rwm",
+			},
+		},
+	}
+
 	namespaces := []runtimespec.LinuxNamespace{
 		{Type: "ipc"},
 		{Type: "mount"},
@@ -78,6 +87,9 @@ func BaseSpec(rootfs string, rootless bool) (*runtimespec.Spec, error) {
 				Options:     []string{"rbind", "nosuid", "noexec", "nodev", "ro"},
 			},
 		)
+
+		// No resources in rootless mode.
+		resources = nil
 
 		namespaces = append(namespaces, runtimespec.LinuxNamespace{Type: "user"})
 
@@ -173,6 +185,7 @@ func BaseSpec(rootfs string, rootless bool) (*runtimespec.Spec, error) {
 		Hostname: "container",
 		Mounts:   mounts,
 		Linux: &runtimespec.Linux{
+			Resources:   resources,
 			UIDMappings: uidMappings,
 			GIDMappings: gidMappings,
 			Namespaces:  namespaces,
