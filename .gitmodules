@@ -7,3 +7,4 @@
 [submodule "tests/runtime-tools"]
 	path = tests/runtime-tools
 	url = https://github.com/opencontainers/runtime-tools
+	ignore = dirty
