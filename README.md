@@ -2,10 +2,6 @@
 
 [![CI](https://github.com/willdurand/containers/actions/workflows/ci.yml/badge.svg)](https://github.com/willdurand/containers/actions/workflows/ci.yml)
 
-<p align="center">
-  <img src="./docs/yaman.svg" />
-</p>
-
 This is a repository with some code I wrote to **learn** more about containers. It currently contains:
 
 - [`yacr`](./cmd/yacr/README.md): a container runtime that implements the [runtime-spec][]
@@ -14,24 +10,35 @@ This is a repository with some code I wrote to **learn** more about containers. 
 
 For more information, please refer to the documentation of each sub-project.
 
+[![asciicast](https://asciinema.org/a/vdC2zxvyHSubTHuAPDt3g2T21.svg)](https://asciinema.org/a/vdC2zxvyHSubTHuAPDt3g2T21)
+
 Want to give it a quick try? [Open this project in Gitpod](https://gitpod.io/#https://github.com/willdurand/containers)!
 
 ## Building this project
 
-This project requires a Linux environment. You can use Gitpod as mentioned above or [Vagrant][].
+This project requires a Linux environment and the following dependencies:
+
+- `fuse-overlayfs` for rootless containers
+- `uidmap` for rootless containers
+- `slirp4netns` for the network layer (rootfull and rootless containers)
+- `bats`, `netcat` and `jq` for the integration tests
+
+You should use Gitpod as mentioned in the previously or [Vagrant][]. It might not be a good idea to run this project on your actual machine.
 
 The easiest and quickest way to get started is to build all sub-projects:
 
-```
+```console
 $ make all
 $ sudo make install
 ```
+
+Optional step: run `sudo make install_completion` to enable `bash` auto-completion.
 
 ### Vagrant
 
 This project can be used with [Vagrant][] to set up a Linux virtual machine. This is recommended as opposed to trying out the different tools on your actual Linux system.
 
-```
+```console
 $ vagrant up && vagrant ssh
 ```
 
@@ -45,7 +52,7 @@ You must have the `bash-completion` package installed first and you should possi
 
 You can now install the completion files:
 
-```
+```console
 $ sudo make install_completion
 ```
 
