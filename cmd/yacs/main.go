@@ -14,11 +14,12 @@ func main() {
 	rootCmd.Run = cli.HandleErrors(run)
 	rootCmd.Args = cobra.NoArgs
 
+	rootCmd.Flags().String("base-dir", "", `path to the base directory (default "<rootDir>/<containerId>"`)
 	rootCmd.Flags().StringP("bundle", "b", "", "path to the root of the bundle directory")
 	rootCmd.MarkFlagRequired("bundle")
 	rootCmd.Flags().String("container-id", "", "container id")
 	rootCmd.MarkFlagRequired("container-id")
-	rootCmd.Flags().String("container-log-file", "", `path to the container log file (default: "container.log")`)
+	rootCmd.Flags().String("container-log-file", "", `path to the container log file (default "container.log")`)
 	rootCmd.Flags().String("exit-command", "", "path to the exit command executed when the container has exited")
 	rootCmd.Flags().StringArray("exit-command-arg", []string{}, "argument to pass to the execute command")
 	rootCmd.Flags().String("runtime", "yacr", "container runtime to use")

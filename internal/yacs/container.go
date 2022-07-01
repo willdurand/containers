@@ -3,7 +3,6 @@ package yacs
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/cmd"
+	"github.com/willdurand/containers/internal/logs"
 	"github.com/willdurand/containers/internal/yacs/log"
 	"github.com/willdurand/containers/thirdparty/runc/libcontainer/utils"
 	"golang.org/x/sys/unix"
@@ -185,7 +185,7 @@ func (y *Yacs) createContainer() {
 	}).Info("creating container")
 
 	if err := createCommand.Run(); err != nil {
-		y.containerReady <- maybeReturnRuntimeError(y, err)
+		y.containerReady <- logs.GetBetterError(y.runtimeLogFilePath(), err)
 		return
 	}
 
@@ -272,43 +272,6 @@ func copyStd(name string, src *os.File, logFile *log.LogFile, fifo *os.File) {
 		fifo.WriteString(m + "\n")
 		logFile.WriteMessage(name, m)
 	}
-}
-
-// maybeReturnRuntimeError reads the runtime log file in order to return the
-// last message logged by the runtime as an error. If anything goes wrong, the
-// original error is returned instead.
-func maybeReturnRuntimeError(y *Yacs, originalError error) error {
-	logFile, err := os.Open(y.runtimeLogFilePath())
-	if err != nil {
-		return originalError
-	}
-	defer logFile.Close()
-
-	// Let's consider the two last lines in the log file.
-	lastLines := [][]byte{[]byte(""), []byte("")}
-
-	scanner := bufio.NewScanner(logFile)
-	for scanner.Scan() {
-		lastLines[0] = lastLines[1]
-		lastLines[1] = scanner.Bytes()
-	}
-
-	for _, lastLine := range lastLines {
-		log := make(map[string]string)
-		if err := json.Unmarshal(lastLine, &log); err != nil {
-			return originalError
-		}
-
-		if log["level"] != "error" {
-			continue
-		}
-
-		if msg := log["msg"]; msg != "" {
-			return errors.New(msg)
-		}
-	}
-
-	return originalError
 }
 
 func closeFifo(f *os.File) {
