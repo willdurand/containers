@@ -44,7 +44,7 @@ VALIDATION_TESTS=(
 	# "validation/linux_seccomp/linux_seccomp.t"
 	# "validation/linux_sysctl/linux_sysctl.t"
 	# "validation/linux_uid_mappings/linux_uid_mappings.t"
-	# "validation/misc_props/misc_props.t"
+	"validation/misc_props/misc_props.t"
 	# "validation/mounts/mounts.t"
 	# "validation/pidfile/pidfile.t"
 	"validation/poststart_fail/poststart_fail.t"
