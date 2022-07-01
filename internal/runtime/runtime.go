@@ -131,6 +131,41 @@ func BaseSpec(rootfs string, rootless bool) (*runtimespec.Spec, error) {
 			Args: []string{"sleep", "100"},
 			Env:  []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
 			Cwd:  "/",
+			Capabilities: &runtimespec.LinuxCapabilities{
+				Bounding: []string{
+					"CAP_AUDIT_WRITE",
+					"CAP_KILL",
+					"CAP_NET_BIND_SERVICE",
+				},
+				Effective: []string{
+					"CAP_AUDIT_WRITE",
+					"CAP_KILL",
+					"CAP_NET_BIND_SERVICE",
+				},
+				Inheritable: []string{
+					"CAP_AUDIT_WRITE",
+					"CAP_KILL",
+					"CAP_NET_BIND_SERVICE",
+				},
+				Permitted: []string{
+					"CAP_AUDIT_WRITE",
+					"CAP_KILL",
+					"CAP_NET_BIND_SERVICE",
+				},
+				Ambient: []string{
+					"CAP_AUDIT_WRITE",
+					"CAP_KILL",
+					"CAP_NET_BIND_SERVICE",
+				},
+			},
+			Rlimits: []runtimespec.POSIXRlimit{
+				{
+					Type: "RLIMIT_NOFILE",
+					Hard: 1024,
+					Soft: 1024,
+				},
+			},
+			NoNewPrivileges: true,
 		},
 		Root: &runtimespec.Root{
 			Path: rootfs,
