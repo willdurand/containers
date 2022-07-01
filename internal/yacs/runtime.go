@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	runtimespec "github.com/opencontainers/runtime-spec/specs-go"
@@ -85,7 +86,8 @@ func (y *Yacs) executeRuntime(args ...string) ([]byte, error) {
 			}
 			// Adjust error with the stderr output instead of a generic message
 			// like "exit status 1".
-			err = errors.New(string(exitError.Stderr))
+			msg := strings.TrimPrefix(string(exitError.Stderr), "Error: ")
+			err = errors.New(msg)
 		}
 	}
 
