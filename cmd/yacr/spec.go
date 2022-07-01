@@ -18,11 +18,13 @@ func init() {
 		Args:  cobra.NoArgs,
 	}
 	cmd.Flags().StringP("bundle", "b", "", "path to the root of the bundle directory")
+	cmd.Flags().Bool("rootless", false, "generate a configuration for a rootless container")
 	rootCmd.AddCommand(cmd)
 }
 
 func spec(cmd *cobra.Command, args []string) error {
 	bundle, _ := cmd.Flags().GetString("bundle")
+	rootless, _ := cmd.Flags().GetBool("rootless")
 
 	configFile, err := os.Create(filepath.Join(bundle, "config.json"))
 	if err != nil {
@@ -38,7 +40,7 @@ func spec(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	spec, err := runtime.BaseSpec(rootfs, os.Getuid() != 0)
+	spec, err := runtime.BaseSpec(rootfs, rootless)
 	if err != nil {
 		return err
 	}

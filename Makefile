@@ -47,7 +47,7 @@ alpine_bundle: ## create a rootless bundle (for testing purposes)
 	rm -rf /tmp/alpine-bundle/rootfs
 	mkdir -p /tmp/alpine-bundle/rootfs
 	docker export $$(docker create alpine) | tar -C /tmp/alpine-bundle/rootfs -xvf -
-	yacr spec --bundle /tmp/alpine-bundle
+	yacr spec --bundle /tmp/alpine-bundle --rootless
 .PHONY: alpine_bundle
 
 hello_world_image:
