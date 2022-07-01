@@ -60,7 +60,7 @@ apt_install:
 	apt-get update
 	apt-get install -y fuse-overlayfs slirp4netns uidmap netcat jq
 	which runc || apt-get install -y runc
-	which tap || apt-get install -y nodejs npm && npm install --location=global tap
+	which tap || (apt-get install -y nodejs npm && npm install --location=global tap)
 .PHONY: apt_install
 
 help: ## show this help message
