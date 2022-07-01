@@ -1,9 +1,13 @@
 tasks:
   - name: bootstrap
     init: |
-      sudo make apt_install
-      npm install -g bats
+      npm install -g bats tap
       sudo ln -s "$(which bats)" /usr/local/bin/bats
+      sudo ln -s "$(which node)" /usr/local/bin/node
+      sudo ln -s "$(which tap)" /usr/local/bin/tap
+      # Run last because the command below does "command detection" and we don't
+      # necessarily want to install `node-tap` when `tap` is already installed.
+      sudo make apt_install
 
     before: |
       # This is needed to hide a warning in `sudo make install`.

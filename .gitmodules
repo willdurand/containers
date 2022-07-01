@@ -4,3 +4,6 @@
 [submodule "tests/integration/helpers/bats-assert"]
 	path = tests/integration/helpers/bats-assert
 	url = https://github.com/bats-core/bats-assert.git
+[submodule "tests/runtime-tools"]
+	path = tests/runtime-tools
+	url = https://github.com/opencontainers/runtime-tools
