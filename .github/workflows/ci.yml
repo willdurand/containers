@@ -64,4 +64,4 @@ jobs:
 
     - name: Run OCI runtime tests
       run: |
-        ./tools/run-oci-runtime-tests
+        ./tests/scripts/run-oci-runtime-tests
