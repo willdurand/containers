@@ -1,0 +1,14 @@
+--- kernel/reboot.c
++++ kernel/reboot.c
+@@ -248,9 +248,9 @@
+ 	migrate_to_reboot_cpu();
+ 	syscore_shutdown();
+ 	if (!cmd)
+-		pr_emerg("Restarting system\n");
++		pr_alert("Restarting system\n");
+ 	else
+-		pr_emerg("Restarting system with command '%s'\n", cmd);
++		pr_alert("Restarting system with command '%s'\n", cmd);
+ 	kmsg_dump(KMSG_DUMP_SHUTDOWN);
+ 	machine_restart(cmd);
+ }

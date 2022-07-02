@@ -1,0 +1,21 @@
+--- kernel/exit.c
++++ kernel/exit.c
+@@ -64,6 +64,7 @@
+ #include <linux/rcuwait.h>
+ #include <linux/compat.h>
+ #include <linux/io_uring.h>
++#include <linux/reboot.h>
+ 
+ #include <linux/uaccess.h>
+ #include <asm/unistd.h>
+@@ -791,8 +791,8 @@
+ 		 * immediately to get a useable coredump.
+ 		 */
+ 		if (unlikely(is_global_init(tsk)))
+-			panic("Attempted to kill init! exitcode=0x%08x\n",
+-				tsk->signal->group_exit_code ?: (int)code);
++			orderly_reboot();
++
+ 
+ #ifdef CONFIG_POSIX_TIMERS
+ 		hrtimer_cancel(&tsk->signal->real_timer);
