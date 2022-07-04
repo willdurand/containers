@@ -25,11 +25,11 @@ func Kill(rootDir string, args []string) error {
 	}
 
 	if !container.IsCreated() && !container.IsRunning() {
-		return fmt.Errorf("unexpected status '%s' for container '%s'", container.State().Status, container.ID())
+		return fmt.Errorf("unexpected status '%s' for container '%s'", container.State.Status, container.ID())
 	}
 
-	if container.State().Pid != 0 {
-		if err := syscall.Kill(container.State().Pid, syscall.Signal(sig)); err != nil {
+	if container.State.Pid != 0 {
+		if err := syscall.Kill(container.State.Pid, syscall.Signal(sig)); err != nil {
 			return fmt.Errorf("failed to send signal '%d' to container '%s': %w", sig, container.ID(), err)
 		}
 	}

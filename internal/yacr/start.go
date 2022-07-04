@@ -20,7 +20,7 @@ func Start(rootDir, containerId string) error {
 	}
 
 	if !container.IsCreated() {
-		return fmt.Errorf("start: unexpected status '%s' for container '%s'", container.State().Status, container.ID())
+		return fmt.Errorf("start: unexpected status '%s' for container '%s'", container.State.Status, container.ID())
 	}
 
 	// Connect to the container.

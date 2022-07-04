@@ -105,7 +105,7 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 		}
 	}
 
-	mounts := container.Spec().Mounts
+	mounts := container.Spec.Mounts
 
 	logrus.WithFields(logrus.Fields{
 		"id":     container.ID(),
@@ -205,7 +205,7 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 		}
 	}
 
-	// if container.Spec().Process.Terminal {
+	// if container.Spec.Process.Terminal {
 	// 	TODO: `/dev/console` is set up if terminal is enabled in the config by bind mounting the pseudoterminal pty to `/dev/console`.
 	// }
 
@@ -257,12 +257,12 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 	}
 
 	// Change current working directory.
-	if err := syscall.Chdir(container.Spec().Process.Cwd); err != nil {
+	if err := syscall.Chdir(container.Spec.Process.Cwd); err != nil {
 		return fmt.Errorf("failed to change directory: %w", err)
 	}
 
 	// Set up new hostname.
-	if err := syscall.Sethostname([]byte(container.Spec().Hostname)); err != nil {
+	if err := syscall.Sethostname([]byte(container.Spec.Hostname)); err != nil {
 		return fmt.Errorf("failed to set hostname: %w", err)
 	}
 
@@ -301,7 +301,7 @@ func CreateContainer(rootDir string, opts CreateOpts) error {
 		logrus.WithError(err).Error("StartContainer hook failed")
 	}
 
-	process := container.Spec().Process
+	process := container.Spec.Process
 
 	logrus.WithFields(logrus.Fields{
 		"id":          container.ID(),

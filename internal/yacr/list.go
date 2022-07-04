@@ -41,7 +41,7 @@ func List(rootDir string) (ContainerList, error) {
 			continue
 		}
 
-		state := container.State()
+		state := container.State
 
 		pid := state.Pid
 		if container.IsStopped() {
@@ -51,7 +51,7 @@ func List(rootDir string) (ContainerList, error) {
 		list = append(list, ContainerListItem{
 			ID:         container.ID(),
 			Status:     state.Status,
-			CreatedAt:  container.CreatedAt(),
+			CreatedAt:  container.CreatedAt,
 			PID:        pid,
 			BundlePath: state.Bundle,
 		})

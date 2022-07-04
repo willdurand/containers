@@ -85,7 +85,7 @@ func Create(rootDir string, opts CreateOpts) error {
 	}
 
 	var cloneFlags uintptr
-	for _, ns := range container.Spec().Linux.Namespaces {
+	for _, ns := range container.Spec.Linux.Namespaces {
 		switch ns.Type {
 		case runtimespec.UTSNamespace:
 			cloneFlags |= syscall.CLONE_NEWUTS
@@ -129,7 +129,7 @@ func Create(rootDir string, opts CreateOpts) error {
 		"process": containerProcess.String(),
 	}).Debug("container process configured")
 
-	if container.Spec().Process.Terminal {
+	if container.Spec.Process.Terminal {
 		// See: https://github.com/opencontainers/runc/blob/016a0d29d1750180b2a619fc70d6fe0d80111be0/docs/terminals.md#detached-new-terminal
 		if err := ipc.EnsureValidSockAddr(opts.ConsoleSocket, true); err != nil {
 			return err
@@ -183,7 +183,7 @@ func Create(rootDir string, opts CreateOpts) error {
 		}
 
 		var uidMap []string
-		for _, m := range container.Spec().Linux.UIDMappings {
+		for _, m := range container.Spec.Linux.UIDMappings {
 			uidMap = append(uidMap, []string{
 				strconv.Itoa(int(m.ContainerID)),
 				strconv.Itoa(int(m.HostID)),
@@ -206,7 +206,7 @@ func Create(rootDir string, opts CreateOpts) error {
 		}
 
 		var gidMap []string
-		for _, m := range container.Spec().Linux.GIDMappings {
+		for _, m := range container.Spec.Linux.GIDMappings {
 			gidMap = append(gidMap, []string{
 				strconv.Itoa(int(m.ContainerID)),
 				strconv.Itoa(int(m.HostID)),
