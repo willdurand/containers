@@ -13,7 +13,7 @@ func State(rootDir, containerId string, w io.Writer) error {
 		return err
 	}
 
-	if err := json.NewEncoder(w).Encode(container.State()); err != nil {
+	if err := json.NewEncoder(w).Encode(container.State); err != nil {
 		return err
 	}
 

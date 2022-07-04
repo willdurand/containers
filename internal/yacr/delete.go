@@ -25,7 +25,7 @@ func Delete(rootDir, containerId string, force bool) error {
 	}
 
 	if !force && !container.IsStopped() {
-		return fmt.Errorf("unexpected status '%s' for container '%s'", container.State().Status, container.ID())
+		return fmt.Errorf("unexpected status '%s' for container '%s'", container.State.Status, container.ID())
 	}
 
 	// Attempt to unmount all mountpoints recursively.
@@ -39,8 +39,8 @@ func Delete(rootDir, containerId string, force bool) error {
 		// the rootfs directory. That's a problem because we cannot
 		// the same `ctr run` twice or more...
 		// Let's try to delete the directories if they still exist.
-		for i := len(container.Spec().Mounts) - 1; i >= 0; i-- {
-			mountpoint := container.Rootfs() + container.Spec().Mounts[i].Destination
+		for i := len(container.Spec.Mounts) - 1; i >= 0; i-- {
+			mountpoint := container.Rootfs() + container.Spec.Mounts[i].Destination
 			if err := os.Remove(mountpoint); err != nil {
 				logrus.WithFields(logrus.Fields{
 					"id":         container.ID(),
@@ -58,7 +58,7 @@ func Delete(rootDir, containerId string, force bool) error {
 			"/dev/urandom",
 			"/dev/tty",
 		} {
-			mountpoint := filepath.Join(container.Spec().Root.Path, dev)
+			mountpoint := filepath.Join(container.Spec.Root.Path, dev)
 			if err := syscall.Unmount(mountpoint, 0); err != nil {
 				logrus.WithFields(logrus.Fields{
 					"id":         container.ID(),
@@ -68,8 +68,8 @@ func Delete(rootDir, containerId string, force bool) error {
 			}
 		}
 
-		for i := len(container.Spec().Mounts) - 1; i >= 0; i-- {
-			mountpoint := container.Rootfs() + container.Spec().Mounts[i].Destination
+		for i := len(container.Spec.Mounts) - 1; i >= 0; i-- {
+			mountpoint := container.Rootfs() + container.Spec.Mounts[i].Destination
 			if err := syscall.Unmount(mountpoint, syscall.MNT_DETACH); err != nil {
 				logrus.WithFields(logrus.Fields{
 					"id":         container.ID(),
