@@ -57,10 +57,10 @@ hello_world_image:
 .PHONY: hello_world_image
 
 apt_install:
-	apt-get update
+	$(MAKE) -C microvm apt_install
 	apt-get install -y fuse-overlayfs slirp4netns uidmap netcat jq
 	which runc || apt-get install -y runc
-	which tap || (apt-get install -y nodejs npm && npm install --location=global tap)
+	which tap || (apt-get install -y nodejs npm && npm install -g tap)
 .PHONY: apt_install
 
 help: ## show this help message
