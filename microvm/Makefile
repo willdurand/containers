@@ -22,7 +22,7 @@ kernel_src_dir = $(build_dir)/$(kernel_version)
 kernel_archive = $(build_dir)/$(kernel_archive_file)
 vmlinux        = $(kernel_src_dir)/vmlinux
 rootfs         = $(BUNDLE)/rootfs
-init           = $(rootfs)/sbin/init
+init           = $(build_dir)/init
 virtiofsd      = $(build_dir)/virtiofsd
 virtiofsd_sock = $(build_dir)/virtiofsd.sock
 qemu_mem       = 512m
@@ -47,6 +47,7 @@ $(kernel_src_dir)/.config: config-x86_64
 $(vmlinux): $(kernel_src_dir) $(kernel_src_dir)/.config
 	cd $(kernel_src_dir) && for patch_file in $(PWD)/patches/*.patch; do patch -N -p0 < "$$patch_file" || true; done
 	$(MAKE) -C $(kernel_src_dir) -j$(shell nproc)
+	cp $(vmlinux) $(build_dir)/vmlinux
 
 kernel: ## build the kernel (vmlinux)
 kernel: $(vmlinux)
@@ -76,7 +77,8 @@ $(virtiofsd):
 	cp $(build_dir)/target/x86_64-unknown-linux-musl/release/virtiofsd $(virtiofsd)
 
 run: ## run a container (inside a QEMU VM)
-run: $(kernel) $(init) $(virtiofsd)
+run: kernel init virtiofsd
+	@cp $(init) $(rootfs)/sbin/init
 	@sudo $(virtiofsd) --syslog \
 		--socket-path=$(virtiofsd_sock) \
 		--shared-dir=$(rootfs) \
