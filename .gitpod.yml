@@ -7,6 +7,7 @@ tasks:
       sudo ln -s "$(which tap)" /usr/local/bin/tap
       # Run last because the command below does "command detection" and we don't
       # necessarily want to install `node-tap` when `tap` is already installed.
+      sudo add-apt-repository -y ppa:canonical-server/server-backports
       sudo make apt_install
 
     before: |
