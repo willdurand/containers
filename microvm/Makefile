@@ -63,6 +63,7 @@ init: $(init)
 .PHONY: init
 
 $(init): init.c
+	@mkdir -p $(build_dir)
 	rm -f $(init)
 	gcc $(cflags) -o $@ $<
 
