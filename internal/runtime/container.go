@@ -45,6 +45,10 @@ func New(rootDir string, id string, bundleDir string) (*BaseContainer, error) {
 		return nil, err
 	}
 
+	if err := os.MkdirAll(containerDir, 0o755); err != nil {
+		return nil, fmt.Errorf("failed to create container directory: %w", err)
+	}
+
 	return &BaseContainer{
 		Spec: spec,
 		State: runtimespec.State{
@@ -129,10 +133,6 @@ func (c *BaseContainer) UpdateStatus(newStatus string) error {
 }
 
 func (c *BaseContainer) Save() error {
-	if err := os.MkdirAll(c.BaseDir, 0o755); err != nil {
-		return fmt.Errorf("failed to create container directory: %w", err)
-	}
-
 	if err := c.saveContainerState(); err != nil {
 		return err
 	}

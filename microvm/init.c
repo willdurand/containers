@@ -35,11 +35,21 @@ static void cleanup_env() {
 }
 
 int main(int argc, char *argv[]) {
+  if (mkdir("/proc", 0555) != 0 && errno != EEXIST) {
+    perror("mkdir: /proc");
+    return 1;
+  }
+
   if (mount("proc", "/proc", "proc", 0, NULL) != 0) {
     perror("mount: /proc");
     return 1;
   }
  
+  if (mkdir("/dev", 0755) != 0 && errno != EEXIST) {
+    perror("mkdir: /dev/pts");
+    return 1;
+  }
+
   if (mkdir("/dev/pts", 0620) != 0 && errno != EEXIST) {
     perror("mkdir: /dev/pts");
     return 1;
