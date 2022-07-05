@@ -1,3 +1,4 @@
 /bin/
 /.vagrant/
+/cmd/microvm/init
 /extras/docker/hello-world/hello

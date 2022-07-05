@@ -7,7 +7,7 @@ MAKEFLAGS += --warn-undefined-variables
 
 git_hash      := $(shell git rev-parse --short HEAD)
 bin_dir       := $(CURDIR)/bin
-binaries      := yacr yacs yaman
+binaries      := yacr yacs yaman microvm
 binaries_comp := yacr yaman
 
 go_build_flags := -ldflags "-X github.com/willdurand/containers/internal/version.GitCommit=$(git_hash)"
@@ -42,6 +42,20 @@ yaman: ## build the container manager
 	@mkdir -p $(bin_dir)
 	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
 .PHONY: yaman
+
+microvm: ## build another (experimental) runtime
+microvm: cmd/microvm/init microvm/build/vmlinux
+	@mkdir -p $(bin_dir)
+	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
+.PHONY: microvm
+
+cmd/microvm/init: microvm/init.c
+	$(MAKE) -C microvm init
+	cp microvm/build/init $@
+
+microvm/build/vmlinux: MAKEFLAGS=
+microvm/build/vmlinux:
+	$(MAKE) -C microvm kernel
 
 alpine_bundle: ## create a rootless bundle (for testing purposes)
 	rm -rf /tmp/alpine-bundle/rootfs
