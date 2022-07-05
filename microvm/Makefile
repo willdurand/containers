@@ -54,7 +54,6 @@ kernel: $(vmlinux)
 .PHONY: kernel
 
 apt_install: ## run `apt-get install -y` with a pre-defined list of dependencies
-	add-apt-repository -y ppa:canonical-server/server-backports
 	apt-get update -yqq
 	apt-get install -y bison flex libelf-dev qemu-system
 .PHONY: apt_install
