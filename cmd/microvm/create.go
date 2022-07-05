@@ -18,7 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/willdurand/containers/internal/cli"
-	"github.com/willdurand/containers/internal/microvm"
 	"github.com/willdurand/containers/internal/microvm/container"
 	"golang.org/x/sys/unix"
 
@@ -72,7 +71,6 @@ func init() {
 				virtiofsd,
 				"--syslog",
 				"--socket-path", container.VirtiofsdSocketPath(),
-				// TODO: read `rootfs`` property in `config.json`
 				"--shared-dir", container.Rootfs(),
 				"--socket-group", "gitpod",
 				"--cache", "never",
@@ -212,32 +210,4 @@ func init() {
 	createCmd.Flags().String("pid-file", "", "specify the file to write the process id to")
 	createCmd.Flags().String("console-socket", "", "console unix socket used to pass a PTY descriptor")
 	rootCmd.AddCommand(createCmd)
-
-	killCmd := &cobra.Command{
-		Use:   "kill <id> [<signal>]",
-		Short: "Send a signal to a container",
-		Run: cli.HandleErrors(func(cmd *cobra.Command, args []string) error {
-			rootDir, _ := cmd.Flags().GetString("root")
-
-			return microvm.Kill(rootDir, args[0])
-		}),
-		Args: cobra.MinimumNArgs(1),
-	}
-	killCmd.Flags().Bool("all", false, "UNSUPPORTED FLAG")
-	rootCmd.AddCommand(killCmd)
-
-	deleteCmd := &cobra.Command{
-		Use:     "delete <id>",
-		Aliases: []string{"del", "rm"},
-		Short:   "Delete a container",
-		Run: cli.HandleErrors(func(cmd *cobra.Command, args []string) error {
-			rootDir, _ := cmd.Flags().GetString("root")
-			baseDir := filepath.Join(rootDir, args[0])
-
-			return os.RemoveAll(baseDir)
-		}),
-		Args: cobra.ExactArgs(1),
-	}
-	deleteCmd.Flags().BoolP("force", "f", false, "UNSUPPORTED FLAG")
-	rootCmd.AddCommand(deleteCmd)
 }
