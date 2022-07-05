@@ -52,12 +52,15 @@ func (c *MicrovmContainer) AppendLine(debug bool) string {
 		debugStr = "1"
 	}
 
-	return strings.Join([]string{
-		"quiet", "reboot=t",
-		"rootfstype=virtiofs", "root=/dev/root", "rw",
-		"console=hvc0",
-		fmt.Sprintf("MV_DEBUG=%s", debugStr),
-		fmt.Sprintf("MV_HOSTNAME=%s", c.ID()),
-		fmt.Sprintf("MV_INIT=%s", strings.Join(c.Spec.Process.Args, " ")),
-	}, " ")
+	return strings.Join(append(
+		[]string{
+			"quiet", "reboot=t",
+			"rootfstype=virtiofs", "root=/dev/root", "rw",
+			"console=hvc0",
+			fmt.Sprintf("MV_DEBUG=%s", debugStr),
+			fmt.Sprintf("MV_HOSTNAME=%s", c.ID()),
+			fmt.Sprintf("MV_INIT=%s", strings.Join(c.Spec.Process.Args, " ")),
+		},
+		c.Spec.Process.Env...,
+	), " ")
 }

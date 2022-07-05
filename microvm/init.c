@@ -88,5 +88,5 @@ int main(int argc, char *argv[]) {
   setsid();
   ioctl(0, TIOCSCTTY, 1);
 
-  return execv(argv[0], argv);
+  return execvp(argv[0], argv);
 }
