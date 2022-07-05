@@ -169,21 +169,18 @@ func (c *Container) Mount() error {
 	}
 	c.Config.Hostname = hostname
 
-	c.Config.Hooks = &runtimespec.Hooks{
-		CreateRuntime: []runtimespec.Hook{},
+	self, err := os.Executable()
+	if err != nil {
+		return err
 	}
-
-	// TODO: re-enable depending on the runtime or some other options? e.g. no-hooks?
-	/*
-		self, err := os.Executable()
-		if err != nil {
-			return err
-		}
-		c.Config.Hooks.CreateRuntime = append(c.Config.Hooks.CreateRuntime, runtimespec.Hook{
-			Path: self,
-			Args: []string{self, "container", "hook", "network-setup"},
-		})
-	*/
+	c.Config.Hooks = &runtimespec.Hooks{
+		CreateRuntime: []runtimespec.Hook{
+			{
+				Path: self,
+				Args: []string{self, "container", "hook", "network-setup"},
+			},
+		},
+	}
 
 	data, err := json.Marshal(c.Config)
 	if err != nil {
