@@ -7,7 +7,7 @@ import (
 	"github.com/willdurand/containers/internal/microvm/container"
 )
 
-func Kill(rootDir, containerId string) error {
+func Kill(rootDir, containerId string, signal syscall.Signal) error {
 	container, err := container.LoadWithBundleConfig(rootDir, containerId)
 	if err != nil {
 		return err
@@ -18,8 +18,8 @@ func Kill(rootDir, containerId string) error {
 	}
 
 	if container.State.Pid != 0 {
-		if err := syscall.Kill(container.State.Pid, syscall.SIGKILL); err != nil {
-			return fmt.Errorf("failed to send signal '%d' to container '%s': %w", 9, container.ID(), err)
+		if err := syscall.Kill(container.State.Pid, signal); err != nil {
+			return fmt.Errorf("failed to send signal '%d' to container '%s': %w", signal, container.ID(), err)
 		}
 	}
 
