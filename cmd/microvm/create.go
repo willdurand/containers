@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -26,6 +25,8 @@ import (
 
 //go:embed init
 var initBinary []byte
+
+var charDeviceRedirected = regexp.MustCompile("char device redirected to (.+?) .+")
 
 func init() {
 	createCmd := &cobra.Command{
@@ -66,13 +67,10 @@ func init() {
 			}
 
 			virtiofsdCmd := exec.Command(
-				// HACK: ugh!
-				"sudo",
 				virtiofsd,
 				"--syslog",
 				"--socket-path", container.VirtiofsdSocketPath(),
 				"--shared-dir", container.Rootfs(),
-				"--socket-group", "gitpod",
 				"--cache", "never",
 				"--sandbox", "none",
 			)
@@ -85,28 +83,12 @@ func init() {
 			}
 			defer virtiofsdCmd.Process.Release()
 
-			time.Sleep(10 * time.Millisecond)
-
 			qemu, err := exec.LookPath("qemu-system-x86_64")
 			if err != nil {
 				return err
 			}
 
-			qemuCmd := exec.Command(
-				qemu,
-				"-M", "microvm",
-				"-m", "512m",
-				"-no-acpi", "-no-reboot", "-no-user-config", "-nodefaults", "-display", "none",
-				"-device", "virtio-serial-device",
-				"-device", "virtconsole,chardev=virtiocon0",
-				"-chardev", fmt.Sprintf("socket,id=virtiofs0,path=%s", container.VirtiofsdSocketPath()),
-				"-device", "vhost-user-fs-device,queue-size=1024,chardev=virtiofs0,tag=/dev/root",
-				"-kernel", "/workspace/containers/microvm/build/vmlinux",
-				"-object", fmt.Sprintf("memory-backend-file,id=mem,size=%s,mem-path=%s,share=on", "512m", filepath.Join(container.BaseDir, "shm")),
-				"-numa", "node,memdev=mem",
-				"-pidfile", pidFile, "-daemonize",
-				"-append", container.AppendLine(debug),
-			)
+			qemuCmd := exec.Command(qemu, container.ArgsForQEMU(pidFile, debug)...)
 
 			if consoleSocket == "" {
 				for _, p := range []string{container.PipePathIn(), container.PipePathOut()} {
@@ -158,7 +140,6 @@ func init() {
 				// printed to stdout usually. There must be a better way to do
 				// this (than parsing stdout...) but that works so... let's
 				// revisit this approach later, maybe.
-				charDeviceRedirected := regexp.MustCompile("char device redirected to (.+?) .+")
 				matches := charDeviceRedirected.FindStringSubmatch(qemuOutput)
 				if len(matches) != 2 {
 					return fmt.Errorf("failed to retrieve PTY file descriptor in: %s", qemuOutput)
