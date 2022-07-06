@@ -44,12 +44,12 @@ yaman: ## build the container manager
 .PHONY: yaman
 
 microvm: ## build another (experimental) runtime
-microvm: cmd/microvm/init
+microvm: internal/microvm/init
 	@mkdir -p $(bin_dir)
 	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
 .PHONY: microvm
 
-cmd/microvm/init: microvm/init.c
+internal/microvm/init: microvm/init.c
 	$(MAKE) -C microvm init
 	cp microvm/build/init $@
 
