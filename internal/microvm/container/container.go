@@ -12,6 +12,10 @@ type MicrovmContainer struct {
 	*runtime.BaseContainer
 }
 
+// kernelPath is the path to the kernel binary on the host. This path should be
+// kept in sync with the `make -C microvm install_kernel` command.
+var kernelPath = "/usr/lib/microvm/vmlinux"
+
 func New(rootDir string, id string, bundleDir string) (*MicrovmContainer, error) {
 	base, err := runtime.New(rootDir, id, bundleDir)
 	return &MicrovmContainer{base}, err
@@ -55,8 +59,7 @@ func (c *MicrovmContainer) ArgsForQEMU(pidFile string, debug bool) []string {
 		"-device", "virtconsole,chardev=virtiocon0",
 		"-chardev", fmt.Sprintf("socket,id=virtiofs0,path=%s", c.VirtiofsdSocketPath()),
 		"-device", "vhost-user-fs-device,queue-size=1024,chardev=virtiofs0,tag=/dev/root",
-		// TODO: fixme
-		"-kernel", "/workspace/containers/microvm/build/vmlinux",
+		"-kernel", kernelPath,
 		"-object", fmt.Sprintf("memory-backend-file,id=mem,size=%s,mem-path=%s,share=on", "512m", filepath.Join(c.BaseDir, "shm")),
 		"-numa", "node,memdev=mem",
 		"-pidfile", pidFile, "-daemonize",

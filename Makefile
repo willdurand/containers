@@ -47,8 +47,8 @@ microvm: ## build another experimental runtime that uses micro VMs
 microvm: internal/microvm/init
 	@mkdir -p $(bin_dir)
 	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
-	@[ -f "microvm/build/vmlinux" ] || echo "\nPlease build the kernel with:\n\n  make -C microvm kernel\n"
-	@which virtiofsd || echo "\nPlease install virtiofsd with:\n\n  sudo make -C microvm virtiofsd\n"
+	@[ -f "/usr/lib/microvm/vmlinux" ] || echo "\nPlease build the kernel with:\n\n  make -C microvm kernel\n  sudo make -C microvm install_kernel\n"
+	@which virtiofsd > /dev/null || echo "\nPlease install virtiofsd with:\n\n  sudo make -C microvm virtiofsd\n"
 .PHONY: microvm
 
 internal/microvm/init: microvm/init.c

@@ -54,6 +54,14 @@ kernel: ## build the kernel (vmlinux)
 kernel: $(vmlinux)
 .PHONY: kernel
 
+install_kernel: ## install the kernel on the system (sudo required)
+install_kernel: /usr/lib/microvm/vmlinux
+.PHONY: install_kernel
+
+/usr/lib/microvm/vmlinux:
+	@mkdir -p /usr/lib/microvm
+	install -T -m 644 $(vmlinux) $@
+
 apt_install: ## run `apt-get install -y` with a pre-defined list of dependencies
 	apt-get update -yqq
 	apt-get install -y bison flex libelf-dev qemu-system
