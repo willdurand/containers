@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -18,10 +20,37 @@ func init() {
 		Hidden: true,
 		Run: cli.HandleErrors(func(cmd *cobra.Command, args []string) error {
 			rootDir, _ := cmd.Flags().GetString("root")
+			debug, _ := cmd.Flags().GetBool("debug")
 
 			container, err := container.LoadWithBundleConfig(rootDir, args[0])
 			if err != nil {
 				return err
+			}
+
+			// So... We need to wait until the VM is "vmReady" to send STDIN data,
+			// otherwise STDIN might be ECHO'ed on STDOUT. I am not too sure why
+			// this happens (maybe that's how the Linux console is configured?)
+			// so I introduced a workaround...
+			//
+			// The `init(1)` process will disable ECHO and print a special
+			// message for us here. When we receive it, we can copy the data.
+			vmReady := make(chan interface{})
+
+			pipeOut, err := os.OpenFile(container.PipePathOut(), os.O_RDONLY, 0o600)
+			if err != nil {
+				return err
+			}
+			defer pipeOut.Close()
+
+			s := bufio.NewScanner(pipeOut)
+			for s.Scan() {
+				if debug {
+					fmt.Println(s.Text())
+				}
+				// Should be kept in sync with `microvm/init.c`.
+				if s.Text() == "init: ready" {
+					break
+				}
 			}
 
 			var wg sync.WaitGroup
@@ -29,14 +58,9 @@ func init() {
 			go func() {
 				defer wg.Done()
 
-				file, err := os.OpenFile(container.PipePathOut(), os.O_RDONLY, 0o600)
-				if err != nil {
-					logrus.WithError(err).Error("open: pipe out")
-					return
-				}
-				defer file.Close()
+				close(vmReady)
 
-				if _, err := io.Copy(os.Stdout, file); err != nil {
+				if _, err := io.Copy(os.Stdout, pipeOut); err != nil {
 					logrus.WithError(err).Error("copy: pipe out")
 				}
 			}()
@@ -45,14 +69,16 @@ func init() {
 			go func() {
 				defer wg.Done()
 
-				file, err := os.OpenFile(container.PipePathIn(), os.O_WRONLY, 0o600)
+				pipeIn, err := os.OpenFile(container.PipePathIn(), os.O_WRONLY, 0o600)
 				if err != nil {
 					logrus.WithError(err).Error("open: pipe in")
 					return
 				}
-				defer file.Close()
+				defer pipeIn.Close()
 
-				if _, err := io.Copy(file, os.Stdin); err != nil {
+				<-vmReady
+
+				if _, err := io.Copy(pipeIn, os.Stdin); err != nil {
 					logrus.WithError(err).Error("copy: pipe in")
 				}
 			}()

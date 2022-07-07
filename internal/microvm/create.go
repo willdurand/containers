@@ -82,9 +82,11 @@ func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 		return err
 	}
 
-	qemuCmd := exec.Command(qemu, container.ArgsForQEMU(opts.PidFile, opts.Debug)...)
+	useTTY := opts.ConsoleSocket != ""
 
-	if opts.ConsoleSocket == "" {
+	qemuCmd := exec.Command(qemu, container.ArgsForQEMU(opts.PidFile, opts.Debug, useTTY)...)
+
+	if !useTTY {
 		for _, p := range []string{container.PipePathIn(), container.PipePathOut()} {
 			if err := unix.Mkfifo(p, 0o600); err != nil && !errors.Is(err, fs.ErrExist) {
 				return err
@@ -106,7 +108,7 @@ func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 		return fmt.Errorf("qemu: %s: %w", qemuOutput, err)
 	}
 
-	if opts.ConsoleSocket == "" {
+	if !useTTY {
 		// If we do not have a console socket, we'll have to spawn a
 		// process to redirect the microvm IOs (using the named pipes
 		// created above and the host standard streams).
@@ -116,6 +118,9 @@ func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 		}
 
 		redirectCmd := exec.Command(self, "--root", rootDir, "redirect-stdio", containerId)
+		if opts.Debug {
+			redirectCmd.Args = append(redirectCmd.Args, "--debug")
+		}
 		redirectCmd.Stdin = os.Stdin
 		redirectCmd.Stderr = os.Stderr
 		redirectCmd.Stdout = os.Stdout

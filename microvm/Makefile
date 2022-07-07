@@ -58,9 +58,9 @@ install_kernel: ## install the kernel on the system (sudo required)
 install_kernel: /usr/lib/microvm/vmlinux
 .PHONY: install_kernel
 
-/usr/lib/microvm/vmlinux:
+/usr/lib/microvm/vmlinux: $(build_dir)/vmlinux
 	@mkdir -p /usr/lib/microvm
-	install -T -m 644 $(vmlinux) $@
+	install -T -m 644 $(build_dir)/vmlinux $@
 
 apt_install: ## run `apt-get install -y` with a pre-defined list of dependencies
 	apt-get update -yqq
@@ -88,6 +88,7 @@ $(virtiofsd):
 
 run: ## run a container inside a QEMU micro VM
 run: kernel init virtiofsd
+	@rm -f $(rootfs)/sbin/init
 	@cp $(init) $(rootfs)/sbin/init
 	@sudo $(virtiofsd) --syslog \
 		--socket-path=$(virtiofsd_sock) \
@@ -108,7 +109,7 @@ run: kernel init virtiofsd
 		-object memory-backend-file,id=mem,size=$(qemu_mem),mem-path=/dev/shm,share=on \
 		-numa node,memdev=mem \
 		-kernel $(vmlinux) \
-		-append "quiet reboot=t console=hvc0 rootfstype=virtiofs root=/dev/root rw MV_DEBUG=$(DEBUG) MV_HOSTNAME=$(CID) MV_INIT=$(CMD)"
+		-append "quiet reboot=t console=hvc0 rootfstype=virtiofs root=/dev/root rw MV_TTY=1 MV_DEBUG=$(DEBUG) MV_HOSTNAME=$(CID) MV_INIT=$(CMD)"
 .PHONY: run
 
 help: ## show this help message
