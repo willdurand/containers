@@ -7,6 +7,7 @@ This is a repository with some code I wrote to **learn** more about containers. 
 - [`yacr`](./cmd/yacr/README.md): a container runtime that implements the [runtime-spec][]
 - [`yacs`](./cmd/yacs/README.md): a container shim with an (HTTP) API
 - [`yaman`](./cmd/yaman/README.md): a container manager that leverages the two previous tools
+- [`microvm`][microvm]: a container runtime that uses micro Virtual Machines (VMs)
 
 For more information, please refer to the documentation of each sub-project.
 
@@ -22,6 +23,12 @@ This project requires a Linux environment and the following dependencies:
 - `uidmap` for rootless containers
 - `slirp4netns` for the network layer (rootfull and rootless containers)
 - `bats`, `netcat`, `jq` and `runc` for the integration tests
+- `tap` (or `node-tap`) for the OCI comformance tests
+
+For the [`microvm`][microvm] runtime, this project also requires:
+
+- `bison`, `flex`, `libelf-dev` to build the Linux kernel
+- `qemu-system`
 
 You should use Gitpod as mentioned in the previously or [Vagrant][]. It might not be a good idea to run this project on your actual machine.
 
@@ -64,3 +71,4 @@ See [`LICENSE.txt`](./LICENSE.txt)
 
 [runtime-spec]: https://github.com/opencontainers/runtime-spec
 [vagrant]: https://www.vagrantup.com/
+[microvm]: ./cmd/microvm/README.md

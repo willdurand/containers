@@ -1,6 +1,6 @@
 # Disabled because there are many undefined variables in the kernel's
 # `scripts/Makefile.build` file
-# MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --warn-undefined-variables
 
 .DEFAULT_GOAL := help
 
@@ -23,7 +23,7 @@ kernel_archive = $(build_dir)/$(kernel_archive_file)
 vmlinux        = $(kernel_src_dir)/vmlinux
 rootfs         = $(BUNDLE)/rootfs
 init           = $(build_dir)/init
-virtiofsd      = $(build_dir)/virtiofsd
+virtiofsd      = /usr/local/bin/virtiofsd
 virtiofsd_sock = $(build_dir)/virtiofsd.sock
 qemu_mem       = 512m
 
@@ -44,8 +44,9 @@ $(kernel_src_dir)/.config: config-x86_64
 	cp $< $@
 	$(MAKE) -C $(kernel_src_dir) olddefconfig
 
+$(vmlinux): MAKEFLAGS =
 $(vmlinux): $(kernel_src_dir) $(kernel_src_dir)/.config
-	cd $(kernel_src_dir) && for patch_file in $(PWD)/patches/*.patch; do patch -N -p0 < "$$patch_file" || true; done
+	cd $(kernel_src_dir) && for patch_file in $(CURDIR)/patches/*.patch; do patch -N -p0 < "$$patch_file" || true; done
 	$(MAKE) -C $(kernel_src_dir) -j$(shell nproc)
 	cp $(vmlinux) $(build_dir)/vmlinux
 
@@ -67,16 +68,17 @@ $(init): init.c
 	rm -f $(init)
 	gcc $(cflags) -o $@ $<
 
-virtiofsd: ## download virtiofsd, which we use to "mount" a rootfs in a VM
+virtiofsd: ## download and install virtiofsd (used to "mount" a rootfs in a VM) (sudo required)
 virtiofsd: $(virtiofsd)
 .PHONY: virtiofsd
 
 $(virtiofsd):
-	curl -s -L https://gitlab.com/virtio-fs/virtiofsd/-/jobs/artifacts/main/download?job=publish -o $(build_dir)/virtiofsd.zip
-	cd $(build_dir) && unzip virtiofsd.zip
-	cp $(build_dir)/target/x86_64-unknown-linux-musl/release/virtiofsd $(virtiofsd)
+	curl -s -L https://gitlab.com/virtio-fs/virtiofsd/-/jobs/artifacts/main/download?job=publish -o /tmp/virtiofsd.zip
+	cd /tmp && unzip virtiofsd.zip && rm -f virtiofsd.zip
+	install -T /tmp/target/x86_64-unknown-linux-musl/release/virtiofsd $(virtiofsd)
+	rm -r /tmp/target
 
-run: ## run a container (inside a QEMU VM)
+run: ## run a container inside a QEMU micro VM
 run: kernel init virtiofsd
 	@cp $(init) $(rootfs)/sbin/init
 	@sudo $(virtiofsd) --syslog \
