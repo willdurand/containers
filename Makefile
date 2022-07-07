@@ -43,21 +43,19 @@ yaman: ## build the container manager
 	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
 .PHONY: yaman
 
-microvm: ## build another (experimental) runtime
+microvm: ## build another experimental runtime that uses micro VMs
 microvm: internal/microvm/init
 	@mkdir -p $(bin_dir)
 	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
+	@[ -f "microvm/build/vmlinux" ] || echo "\nPlease build the kernel with:\n\n  make -C microvm kernel\n"
+	@which virtiofsd || echo "\nPlease install virtiofsd with:\n\n  sudo make -C microvm virtiofsd\n"
 .PHONY: microvm
 
 internal/microvm/init: microvm/init.c
 	$(MAKE) -C microvm init
 	cp microvm/build/init $@
 
-microvm/build/vmlinux: MAKEFLAGS=
-microvm/build/vmlinux:
-	$(MAKE) -C microvm kernel
-
-alpine_bundle: ## create a rootless bundle (for testing purposes)
+alpine_bundle: ## create a (rootless) bundle for testing purposes
 	rm -rf /tmp/alpine-bundle/rootfs
 	mkdir -p /tmp/alpine-bundle/rootfs
 	docker export $$(docker create alpine) | tar -C /tmp/alpine-bundle/rootfs -xvf -
@@ -70,7 +68,7 @@ hello_world_image:
 	docker build -t willdurand/hello-world .
 .PHONY: hello_world_image
 
-apt_install:
+apt_install: ## run `apt-get install -y` with a pre-defined list of dependencies
 	$(MAKE) -C microvm apt_install
 	apt-get install -y fuse-overlayfs slirp4netns uidmap netcat jq
 	which runc || apt-get install -y runc
