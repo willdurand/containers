@@ -50,7 +50,7 @@ func (c *MicrovmContainer) VirtiofsdSocketPath() string {
 	return filepath.Join(c.BaseDir, "virtiofsd.sock")
 }
 
-func (c *MicrovmContainer) ArgsForQEMU(pidFile string, debug bool) []string {
+func (c *MicrovmContainer) ArgsForQEMU(pidFile string, debug, tty bool) []string {
 	return []string{
 		"-M", "microvm",
 		"-m", "512m",
@@ -63,11 +63,11 @@ func (c *MicrovmContainer) ArgsForQEMU(pidFile string, debug bool) []string {
 		"-object", fmt.Sprintf("memory-backend-file,id=mem,size=%s,mem-path=%s,share=on", "512m", filepath.Join(c.BaseDir, "shm")),
 		"-numa", "node,memdev=mem",
 		"-pidfile", pidFile, "-daemonize",
-		"-append", c.appendLine(debug),
+		"-append", c.appendLine(debug, tty),
 	}
 }
 
-func (c *MicrovmContainer) appendLine(debug bool) string {
+func (c *MicrovmContainer) appendLine(debug, tty bool) string {
 	args := []string{
 		// Issue a keyboard controller reset to reboot. It's fine to reboot
 		// because we pass `-no-reboot` to QEMU.
@@ -82,6 +82,12 @@ func (c *MicrovmContainer) appendLine(debug bool) string {
 		args = append(args, "MV_DEBUG=1")
 	} else {
 		args = append(args, "quiet", "MV_DEBUG=0")
+	}
+
+	if tty {
+		args = append(args, "MV_TTY=1")
+	} else {
+		args = append(args, "MV_TTY=0")
 	}
 
 	args = append(
