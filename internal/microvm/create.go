@@ -54,6 +54,11 @@ func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 		return err
 	}
 
+	// We need the container base directory created for `virtiofsd` and `qemu`.
+	if err := container.Save(); err != nil {
+		return err
+	}
+
 	// We use `virtiofsd` to "mount" the root filesystem in the VM.
 	virtiofsd, err := exec.LookPath("virtiofsd")
 	if err != nil {
