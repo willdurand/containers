@@ -60,7 +60,7 @@ func (c *MicrovmContainer) ArgsForQEMU(pidFile string, debug, tty bool) []string
 		"-chardev", fmt.Sprintf("socket,id=virtiofs0,path=%s", c.VirtiofsdSocketPath()),
 		"-device", "vhost-user-fs-device,queue-size=1024,chardev=virtiofs0,tag=/dev/root",
 		"-kernel", kernelPath,
-		"-object", fmt.Sprintf("memory-backend-file,id=mem,size=%s,mem-path=%s,share=on", "512m", filepath.Join(c.BaseDir, "shm")),
+		"-object", fmt.Sprintf("memory-backend-memfd,id=mem,size=%s,share=on", "512m"),
 		"-numa", "node,memdev=mem",
 		"-pidfile", pidFile, "-daemonize",
 		"-append", c.appendLine(debug, tty),
