@@ -93,11 +93,11 @@ run: kernel init virtiofsd
 	@sudo $(virtiofsd) --syslog \
 		--socket-path=$(virtiofsd_sock) \
 		--shared-dir=$(rootfs) \
-		--socket-group=$(shell groups) \
+		--socket-group=$(shell groups | cut -d ' ' -f 1) \
 		--cache=never \
 		--sandbox=none \
 		&
-	qemu-system-x86_64 \
+	@qemu-system-x86_64 \
 		-M microvm \
 		-m $(qemu_mem) \
 		-no-acpi -no-reboot -no-user-config -nodefaults -nographic \

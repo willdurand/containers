@@ -26,7 +26,7 @@ $ sudo make virtiofsd
 
 ```
 $ make -C .. alpine_bundle
-$ make run BUNDLE=/tmp/alpine-bundle/ CID=alpine-qemu
+$ make run BUNDLE=/tmp/alpine-bundle CID=alpine-qemu
 ```
 
-[QEMU microvm]: https://qemu.readthedocs.io/en/latest/system/i386/microvm.html
+[qemu microvm]: https://qemu.readthedocs.io/en/latest/system/i386/microvm.html
