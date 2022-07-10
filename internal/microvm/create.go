@@ -176,5 +176,11 @@ func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 	}
 	container.SetPid(pid)
 
+	// Overwrite the pid file because QEMU adds a newline, which breaks the
+	// `strconv.Atoi()` call in `containerd`...
+	if err := ioutil.WriteFile(opts.PidFile, bytes.TrimSpace(data), 0o644); err != nil {
+		return err
+	}
+
 	return container.SaveAsCreated()
 }

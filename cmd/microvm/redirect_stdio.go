@@ -27,13 +27,13 @@ func init() {
 				return err
 			}
 
-			// So... We need to wait until the VM is "vmReady" to send STDIN data,
-			// otherwise STDIN might be ECHO'ed on STDOUT. I am not too sure why
-			// this happens (maybe that's how the Linux console is configured?)
-			// so I introduced a workaround...
+			// So... We need to wait until the VM is "ready" to send STDIN data,
+			// otherwise STDIN might be ECHO'ed on STDOUT. I am not too sure why this
+			// happens (maybe that's how the Linux console is configured?) so I
+			// introduced a workaround...
 			//
-			// The `init(1)` process will disable ECHO and print a special
-			// message for us here. When we receive it, we can copy the data.
+			// The `init(1)` process will disable ECHO and print a special message
+			// for us here. When we receive it, we can copy the data.
 			vmReady := make(chan interface{})
 
 			pipeOut, err := os.OpenFile(container.PipePathOut(), os.O_RDONLY, 0o600)

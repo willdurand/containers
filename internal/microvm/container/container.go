@@ -47,7 +47,7 @@ func (c *MicrovmContainer) InitFilePath() string {
 }
 
 func (c *MicrovmContainer) VirtiofsdSocketPath() string {
-	return filepath.Join(c.BaseDir, "virtiofsd.sock")
+	return filepath.Join(c.BaseDir, "vfsd.sock")
 }
 
 func (c *MicrovmContainer) ArgsForQEMU(pidFile string, debug, tty bool) []string {

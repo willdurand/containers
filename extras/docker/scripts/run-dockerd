@@ -14,6 +14,7 @@ fi
 
 sudo dockerd \
    --add-runtime "$RUNTIME_NAME=$RUNTIME_BIN" \
+   --add-runtime "microvm=$(pwd)/bin/microvm" \
    --default-runtime="$RUNTIME_NAME" \
    --data-root="$ROOT_DIR/data" \
    --exec-root="$ROOT_DIR/exec" \
