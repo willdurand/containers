@@ -25,7 +25,7 @@ $ sudo make virtiofsd
 ## Usage
 
 ```
-$ make -C .. alpine_bundle
+$ make -C ../.. alpine_bundle
 $ make run BUNDLE=/tmp/alpine-bundle CID=alpine-qemu
 ```
 
