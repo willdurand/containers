@@ -10,9 +10,8 @@ tasks:
       sudo add-apt-repository -y ppa:canonical-server/server-backports
       sudo make apt_install
       # For MicroVM:
-      make -C kernel
-      sudo make -C microvm install_kernel
-      sudo make -C microvm virtiofsd
+      make -C microvm kernel
+      sudo make -C microvm virtiofsd install_kernel
 
     before: |
       # This is needed to hide a warning in `sudo make install`.
