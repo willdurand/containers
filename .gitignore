@@ -1,4 +1,4 @@
-/bin/
 /.vagrant/
+/bin/
 /extras/docker/hello-world/hello
 /internal/microvm/init
