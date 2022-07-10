@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 
 	"github.com/creack/pty"
@@ -29,8 +28,6 @@ type CreateOpts struct {
 
 //go:embed init
 var initBinary []byte
-
-var charDeviceRedirected = regexp.MustCompile("char device redirected to (.+?) .+")
 
 func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 	container, err := container.New(rootDir, containerId, bundle)
