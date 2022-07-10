@@ -99,6 +99,8 @@ func Create(rootDir string, opts CreateOpts) error {
 			cloneFlags |= syscall.CLONE_NEWNET
 		case runtimespec.IPCNamespace:
 			cloneFlags |= syscall.CLONE_NEWIPC
+		case runtimespec.CgroupNamespace:
+			logrus.Info("skipping cgroup namespace")
 		default:
 			return fmt.Errorf("unsupported namespace: %s", ns.Type)
 		}
