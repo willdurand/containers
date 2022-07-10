@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 
+	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
 	"github.com/willdurand/containers/internal/microvm/container"
 	"golang.org/x/sys/unix"
@@ -91,74 +91,15 @@ func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 
 	qemuCmd := exec.Command(qemu, container.ArgsForQEMU(opts.PidFile, opts.Debug, useTTY)...)
 
-	if !useTTY {
-		for _, p := range []string{container.PipePathIn(), container.PipePathOut()} {
-			if err := unix.Mkfifo(p, 0o600); err != nil && !errors.Is(err, fs.ErrExist) {
-				return err
-			}
-		}
-
-		qemuCmd.Args = append(
-			qemuCmd.Args,
-			"-chardev", fmt.Sprintf("pipe,path=%s,id=virtiocon0", container.PipePath()),
-		)
-	} else {
-		qemuCmd.Args = append(qemuCmd.Args, "-chardev", "pty,id=virtiocon0")
-	}
-
-	logrus.WithField("command", qemuCmd.String()).Debug("starting QEMU")
-	output, err := qemuCmd.CombinedOutput()
-	qemuOutput := strings.TrimSuffix(string(output), "\n")
-	if err != nil {
-		return fmt.Errorf("qemu: %s: %w", qemuOutput, err)
-	}
-
-	if !useTTY {
-		// If we do not have a console socket, we'll have to spawn a
-		// process to redirect the microvm IOs (using the named pipes
-		// created above and the host standard streams).
-		self, err := os.Executable()
+	if useTTY {
+		pty, tty, err := pty.Open()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create pty: %w", err)
 		}
+		defer pty.Close()
+		defer tty.Close()
 
-		redirectCmd := exec.Command(self, "--root", rootDir, "redirect-stdio", containerId)
-		if opts.Debug {
-			redirectCmd.Args = append(redirectCmd.Args, "--debug")
-		}
-		redirectCmd.Stdin = os.Stdin
-		redirectCmd.Stderr = os.Stderr
-		redirectCmd.Stdout = os.Stdout
-
-		// We need to save the container so that the `redirect-stdio`
-		// command can load it.
-		container.Save()
-
-		logrus.WithField("command", redirectCmd.String()).Debug("start redirect-stdio process")
-		if err := redirectCmd.Start(); err != nil {
-			return err
-		}
-		defer redirectCmd.Process.Release()
-	} else {
-		// We need to retrieve the PTY file created by QEMU, which is
-		// printed to stdout usually. There must be a better way to do
-		// this (than parsing stdout...) but that works so... let's
-		// revisit this approach later, maybe.
-		matches := charDeviceRedirected.FindStringSubmatch(qemuOutput)
-		if len(matches) != 2 {
-			return fmt.Errorf("failed to retrieve PTY file descriptor in: %s", qemuOutput)
-		}
-		ptyFile := strings.TrimSpace(matches[1])
-
-		logrus.WithField("ptyFile", ptyFile).Debug("found PTY file")
-
-		pty, err := os.OpenFile(ptyFile, os.O_RDWR, 0o600)
-		if err != nil {
-			return err
-		}
-
-		// Connect to the socket in order to send the PTY file
-		// descriptor.
+		// Connect to the socket in order to send the pty file descriptor.
 		conn, err := net.Dial("unix", opts.ConsoleSocket)
 		if err != nil {
 			return err
@@ -174,6 +115,55 @@ func Create(rootDir, containerId, bundle string, opts CreateOpts) error {
 		// Send file descriptor over socket.
 		oob := unix.UnixRights(int(pty.Fd()))
 		uc.WriteMsgUnix([]byte(pty.Name()), oob, nil)
+
+		qemuCmd.Args = append(
+			qemuCmd.Args,
+			"-chardev", fmt.Sprintf("tty,path=%s,id=virtiocon0", tty.Name()),
+		)
+	} else {
+		for _, p := range []string{container.PipePathIn(), container.PipePathOut()} {
+			if err := unix.Mkfifo(p, 0o600); err != nil && !errors.Is(err, fs.ErrExist) {
+				return err
+			}
+		}
+
+		qemuCmd.Args = append(
+			qemuCmd.Args,
+			"-chardev", fmt.Sprintf("pipe,path=%s,id=virtiocon0", container.PipePath()),
+		)
+	}
+
+	logrus.WithField("command", qemuCmd.String()).Debug("starting QEMU")
+	if err := qemuCmd.Run(); err != nil {
+		return fmt.Errorf("qemu: %w", err)
+	}
+
+	if !useTTY {
+		// If we do not have a console socket, we'll have to spawn a process to
+		// redirect the microvm IOs (using the named pipes created above and the
+		// host standard streams).
+		self, err := os.Executable()
+		if err != nil {
+			return err
+		}
+
+		redirectCmd := exec.Command(self, "--root", rootDir, "redirect-stdio", containerId)
+		if opts.Debug {
+			redirectCmd.Args = append(redirectCmd.Args, "--debug")
+		}
+		redirectCmd.Stdin = os.Stdin
+		redirectCmd.Stderr = os.Stderr
+		redirectCmd.Stdout = os.Stdout
+
+		// We need to save the container so that the `redirect-stdio` command can
+		// load it.
+		container.Save()
+
+		logrus.WithField("command", redirectCmd.String()).Debug("start redirect-stdio process")
+		if err := redirectCmd.Start(); err != nil {
+			return err
+		}
+		defer redirectCmd.Process.Release()
 	}
 
 	data, err := ioutil.ReadFile(opts.PidFile)
