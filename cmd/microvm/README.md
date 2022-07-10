@@ -75,6 +75,7 @@ Weather report: Brussels, Belgium
 $ sudo yaman c ls -a
 CONTAINER ID                       IMAGE                           COMMAND     CREATED          STATUS                      PORTS
 26127b728da94fd7a184549f2c0f586c   quay.io/aptible/alpine:latest   head -n 7   15 seconds ago   Exited (0) 12 seconds ago
+
 $ sudo yaman c logs 26127b728da94fd7a184549f2c0f586c
 Weather report: Brussels, Belgium
 

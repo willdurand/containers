@@ -30,7 +30,7 @@ For the [`microvm`][microvm] runtime, this project also requires:
 - `bison`, `flex`, `libelf-dev` to build the Linux kernel
 - `qemu-system`
 
-You should use Gitpod as mentioned in the previously or [Vagrant][]. It might not be a good idea to run this project on your actual machine.
+You should either use Gitpod as mentioned in the previous section or [Vagrant][]. It might not be a good idea to run this project on your actual machine.
 
 The easiest and quickest way to get started is to build all sub-projects:
 
