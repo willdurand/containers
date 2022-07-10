@@ -47,7 +47,7 @@ func init() {
 				if debug {
 					fmt.Println(s.Text())
 				}
-				// Should be kept in sync with `microvm/init.c`.
+				// Should be kept in sync with `extras/microvm/init.c`.
 				if s.Text() == "init: ready" {
 					break
 				}

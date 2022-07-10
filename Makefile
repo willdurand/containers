@@ -47,13 +47,13 @@ microvm: ## build another experimental runtime that uses micro VMs
 microvm: internal/microvm/init
 	@mkdir -p $(bin_dir)
 	cd cmd/$@ && go build $(go_build_flags) -o "$(bin_dir)/$@"
-	@[ -f "/usr/lib/microvm/vmlinux" ] || echo "\nPlease build the kernel with:\n\n  make -C microvm kernel\n  sudo make -C microvm install_kernel\n"
-	@which virtiofsd > /dev/null || echo "\nPlease install virtiofsd with:\n\n  sudo make -C microvm virtiofsd\n"
+	@[ -f "/usr/lib/microvm/vmlinux" ] || echo "\nPlease build the kernel with:\n\n  make -C extras/microvm kernel\n  sudo make -C extras/microvm install_kernel\n"
+	@which virtiofsd > /dev/null || echo "\nPlease install virtiofsd with:\n\n  sudo make -C extras/microvm virtiofsd\n"
 .PHONY: microvm
 
-internal/microvm/init: microvm/init.c
-	$(MAKE) -C microvm init
-	cp microvm/build/init $@
+internal/microvm/init: extras/microvm/init.c
+	$(MAKE) -C extras/microvm init
+	cp extras/microvm/build/init $@
 
 alpine_bundle: ## create a (rootless) bundle for testing purposes
 	rm -rf /tmp/alpine-bundle/rootfs
@@ -69,7 +69,7 @@ hello_world_image:
 .PHONY: hello_world_image
 
 apt_install: ## run `apt-get install -y` with a pre-defined list of dependencies
-	$(MAKE) -C microvm apt_install
+	$(MAKE) -C extras/microvm apt_install
 	apt-get install -y fuse-overlayfs slirp4netns uidmap netcat jq
 	which runc || apt-get install -y runc
 	which tap || (apt-get install -y nodejs npm && npm install -g tap)
