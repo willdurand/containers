@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 
   if (mount("shm", "/dev/shm", "tmpfs", MS_NOSUID | MS_NOEXEC | MS_NODEV,
             NULL) != 0) {
-    perror("mount /dev/shm");
+    perror("mount: /dev/shm");
     return 1;
   }
 
@@ -95,9 +95,16 @@ int main(int argc, char *argv[]) {
       perror("open: /dev/hvc0");
       return 1;
     }
+
+    if (!isatty(fd)) {
+      perror("isatty: /dev/hvc0");
+      return 1;
+    }
+
     dup2(fd, 0);
     dup2(fd, 1);
     dup2(fd, 2);
+
     while (fd > 2) {
       close(fd--);
     }
