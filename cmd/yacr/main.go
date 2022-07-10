@@ -13,6 +13,10 @@ var rootCmd = cli.NewRootCommand(
 	"Yet another (unsafe) container runtime",
 )
 
+func init() {
+	rootCmd.PersistentFlags().Bool("systemd-cgroup", false, "UNSUPPORTED FLAG")
+}
+
 func main() {
 	cli.Execute(rootCmd)
 }

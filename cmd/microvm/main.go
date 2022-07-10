@@ -12,6 +12,10 @@ var rootCmd = cli.NewRootCommand(
 	"An experimental runtime backed by micro VMs",
 )
 
+func init() {
+	rootCmd.PersistentFlags().Bool("systemd-cgroup", false, "UNSUPPORTED FLAG")
+}
+
 func main() {
 	cli.Execute(rootCmd)
 }
