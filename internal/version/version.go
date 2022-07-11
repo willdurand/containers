@@ -11,7 +11,7 @@ import (
 
 var (
 	// VersionString represents the project's version.
-	VersionString string = "0.3.0"
+	VersionString string = "0.4.0-dev"
 	// GitCommit is the hash of the git commit at build time. It is set by the Makefile.
 	GitCommit string = "n/a"
 )
