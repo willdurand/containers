@@ -7,7 +7,7 @@ require github.com/spf13/cobra v1.4.0
 require (
 	github.com/artyom/untar v1.0.1
 	github.com/creack/pty v1.1.18
-	github.com/docker/docker v20.10.17+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/google/uuid v1.3.0
 	github.com/opencontainers/go-digest v1.0.0
